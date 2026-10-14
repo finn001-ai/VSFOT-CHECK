@@ -58,7 +58,28 @@ def start(args, target_dataloader, CLIP_model_raw):
 
     IML = InformationMaximizationLoss(trade_off=args.imloss)
 
+    # 诊断用：在指定训练进度保存快照（默认不保存），并可提前停止（默认跑完）
+    # 学习率调度仍按完整的 max_iter 计算，所以快照和完整训练时同一进度的状态一致
+    snapshot_iters = {int(p * max_iter): p for p in args.snapshot_at}
+    stop_iter = int(args.stop_at * max_iter)
+
     while iter_num < max_iter:
+        if iter_num in snapshot_iters:
+            p = snapshot_iters[iter_num]
+            torch.save({
+                "progress": p, "iter": iter_num, "max_iter": max_iter,
+                "args": vars(args),
+                "imgs": target_dataloader["test"].dataset.imgs,     # 记忆库索引对应的图片顺序
+                "feature": feature_net.state_dict(),
+                "classifier": classifier_net.state_dict(),
+                "adapter": {k: v for k, v in CLIP_model.state_dict().items() if "adapter" in k},
+                "vil_bank": MB.vil_bank.cpu(),
+                "model_bank": MB.model_bank.cpu(),
+            }, os.path.join(Project.root_path, f"snapshot_p{round(p * 100):03d}.pt"))
+            Project.log(f"Snapshot saved at progress {p} (iter {iter_num})")
+        if iter_num >= stop_iter:
+            Project.log(f"Stop at progress {args.stop_at} (iter {iter_num})")
+            break
         feature_net.train()
         try:
             item = next(iter_target)
@@ -168,7 +189,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='PyTorch Training')
     parser.add_argument('--name', type=str, default=None)
     parser.add_argument('--epochs', type=int, default=20)
-    parser.add_argument('--batch_size', type=int, default=32)
+    parser.add_argument('--batch_size', type=int, default=64)
     parser.add_argument('--seed', type=int, default=42)
     parser.add_argument('--source', type=str, default="webcam")
     parser.add_argument('--target', type=str, default="amazon")
@@ -191,6 +212,9 @@ if __name__ == "__main__":
     parser.add_argument("--imloss", default=1, type=float)
 
     parser.add_argument("--topk", default=3, type=int)
+
+    parser.add_argument("--snapshot_at", default=[], type=float, nargs="*", help="保存快照的训练进度，如 0 0.25 0.5")
+    parser.add_argument("--stop_at", default=1.0, type=float, help="训练到该进度后停止，如 0.5")
 
     args = parser.parse_args()
 
