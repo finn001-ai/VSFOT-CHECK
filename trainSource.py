@@ -15,7 +15,7 @@ import datetime
 import json
 
 
-IMAGEFILE = "/root/user/dataset"
+IMAGEFILE = "dataset"    # 相对项目根目录；图片通过软链接放在 dataset/<数据集>/<域>/ 下
 
 def op_copy(optimizer):
     for param_group in optimizer.param_groups:

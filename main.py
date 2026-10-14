@@ -18,7 +18,7 @@ import datetime
 import json
 
 
-IMAGEFILE = "/root/user/dataset"
+IMAGEFILE = "dataset"    # 相对项目根目录；图片通过软链接放在 dataset/<数据集>/<域>/ 下
 
 def start(args, target_dataloader, CLIP_model_raw):
     network = torch.load(os.path.join("process", args.sourceStorage, f"Source_{args.source.lower()}", "Source.pt"), weights_only=False)
