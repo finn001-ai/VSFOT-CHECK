@@ -108,7 +108,13 @@ def start(args, target_dataloader, CLIP_model_raw):
             clipSim = vilImgFeat @ vilTextFeat.T                                    # [B, C]
             clipProb = torch.softmax(100*clipSim, dim = 1)                          # [B, C]
 
-            gamma1 = getGamma(args, clipProb.T, vilMemoryMean, args.otReg)     # [C, B]
+            if args.align_mode == "ot":
+                gamma1 = getGamma(args, clipProb.T, vilMemoryMean, args.otReg)     # [C, B]
+            # 消融：不做 OT，直接用 CLIP 的标签当计划；每列质量 1/B，和 OT 计划的列边际一致，损失量级可比
+            elif args.align_mode == "clip_soft":
+                gamma1 = clipProb.T / clipProb.size(0)                              # [C, B]
+            elif args.align_mode == "clip_hard":
+                gamma1 = torch.nn.functional.one_hot(clipProb.argmax(dim=1), args.class_num).float().T / clipProb.size(0)
 
         ################################################
         modelFeatGradW = feature_net(weak_img)
@@ -215,6 +221,8 @@ if __name__ == "__main__":
 
     parser.add_argument("--snapshot_at", default=[], type=float, nargs="*", help="保存快照的训练进度，如 0 0.25 0.5")
     parser.add_argument("--stop_at", default=1.0, type=float, help="训练到该进度后停止，如 0.5")
+    parser.add_argument("--align_mode", default="ot", type=str, choices=["ot", "clip_soft", "clip_hard"],
+                        help="对齐损失用的计划：ot = 原方法；clip_soft / clip_hard = 消融，直接用 CLIP 软 / 硬标签")
 
     args = parser.parse_args()
 
