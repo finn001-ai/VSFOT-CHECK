@@ -36,7 +36,7 @@ def start(args, target_dataloader, CLIP_model_raw):
                    {'params': feature_net.feat_bottleneck.parameters(), 'lr': args.lr},
                    {'params': classifier_net.parameters(), 'lr':args.lr * 0.1}]
     model_optimizer = torch.optim.SGD(param_group)
-    model_LR = torch.optim.lr_scheduler.CosineAnnealingLR(model_optimizer, max_iter, eta_min=0, last_epoch=- 1, verbose=False)
+    model_LR = torch.optim.lr_scheduler.CosineAnnealingLR(model_optimizer, max_iter, eta_min=0, last_epoch=- 1)
 
     CLIP_model = clipAdapter(CLIP_model_raw, args.device, adapterCount = args.adaptercount)
     clip_optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, CLIP_model.parameters()), lr=5e-5)
