@@ -25,6 +25,7 @@ from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
 
 from utils.Dataset import RGB_loader
+from utils.Other import load_class_names, check_class_names
 
 DOMAINS = ["Art", "Clipart", "Product", "Real World"]
 PAPER_AVG = 79.04          # 论文表 4，CLIP ViT-B/32 在 Office-Home 的零样本平均准确率
@@ -50,32 +51,6 @@ class ListDataset(Dataset):
         return self.preprocess(RGB_loader(path)), label
 
 
-# 和 main.py 中 OfficeHomeDataset 的 args.class_info 完全相同（标签编号即列表下标）
-# 注意：不能从图片列表的路径里解析类名 —— 云端 *_list.txt 的路径格式和项目自带的 txt 不同
-CLASS_NAMES = ['Alarm_Clock', 'Backpack', 'Batteries', 'Bed', 'Bike', 'Bottle', 'Bucket', 'Calculator', 'Calendar', 'Candles', 'Chair', 'Clipboards', 'Computer', 'Couch', 'Curtains', 'Desk_Lamp', 'Drill', 'Eraser', 'Exit_Sign', 'Fan', 'File_Cabinet', 'Flipflops', 'Flowers', 'Folder', 'Fork', 'Glasses', 'Hammer', 'Helmet', 'Kettle', 'Keyboard', 'Knives', 'Lamp_Shade', 'Laptop', 'Marker', 'Monitor', 'Mop', 'Mouse', 'Mug', 'Notebook', 'Oven', 'Pan', 'Paper_Clip', 'Pen', 'Pencil', 'Postit_Notes', 'Printer', 'Push_Pin', 'Radio', 'Refrigerator', 'Ruler', 'Scissors', 'Screwdriver', 'Shelf', 'Sink', 'Sneakers', 'Soda', 'Speaker', 'Spoon', 'Table', 'Telephone', 'ToothBrush', 'Toys', 'Trash_Can', 'TV', 'Webcam']
-
-
-def check_label_names(domain):
-    """
-    核对图片列表中「标签编号 -> 类文件夹名」是否和 CLASS_NAMES 一致。
-    类名取路径的倒数第二段（图片所在文件夹），不受路径是否带前缀 / 绝对路径影响。
-    不一致时，提示词会配错类别，CLIP 准确率被压低但不会报错，所以必须检查。
-    """
-    seen = {}
-    with open(os.path.join("dataset", "OfficeHomeDataset", f"{domain}.txt"), encoding="utf-8") as f:
-        first = None
-        for line in f:
-            if line.strip():
-                rel, label = line.split()[0], int(line.split()[1])
-                first = first or rel
-                parts = rel.replace("\\", "/").split("/")
-                seen.setdefault(label, set()).add(parts[-2] if len(parts) >= 2 else "?")
-    bad = [(k, sorted(v), CLASS_NAMES[k] if k < len(CLASS_NAMES) else None)
-           for k, v in sorted(seen.items()) if v != {CLASS_NAMES[k] if k < len(CLASS_NAMES) else None}]
-    print(f"[{domain}] 列表第一行路径: {first}  标签数: {len(seen)}  与 CLASS_NAMES 不一致: {len(bad)}")
-    for k, v, want in bad[:10]:
-        print(f"    标签 {k}: 列表中的文件夹 {v}，CLASS_NAMES 为 {want}")
-    return len(bad)
 
 
 def main():
@@ -91,9 +66,10 @@ def main():
     model, preprocess = clip.load(a.clip, device=device)
     model.float().eval()     # 和训练代码一致：clipAdapter 会把 CLIP 转成 float32
 
-    class_names = CLASS_NAMES
-    n_bad = sum(check_label_names(d) for d in DOMAINS)
-    print(f"==> 标签与类名核对：共 {n_bad} 处不一致" + ("（提示词会配错类别！）" if n_bad else "（一致）"))
+    # 和 main.py 相同：类名从 <image_root>/classname.txt 读取，并核对与四个域图片列表的标签一致（不一致直接报错）
+    class_names = load_class_names(os.path.join(a.root, "classname.txt"), 65)
+    check_class_names(class_names, [os.path.join("dataset", "OfficeHomeDataset", f"{d}.txt") for d in DOMAINS])
+    print(f"==> 类名来自 {a.root}/classname.txt，与四个域的标签核对一致；第 58-63 类: {class_names[58:64]}")
     variants = {
         "underscore": [TEMPLATE.format(c) for c in class_names],
         "space": [TEMPLATE.format(c.replace("_", " ")) for c in class_names],

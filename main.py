@@ -7,7 +7,7 @@ import argparse
 from utils.Loss import *
 from utils.Project_Record import Project
 from utils.Dataset import getDataloaderSFDA5X
-from utils.Other import backup_files_and_folders, seed_everything
+from utils.Other import backup_files_and_folders, seed_everything, load_class_names, check_class_names
 from utils.Evaluate import modeleval, modeleval_str, lineClassAcc
 from model.network import resnet, classifier
 from utils.otUse import getGamma, getGamma_self
@@ -249,7 +249,8 @@ if __name__ == "__main__":
         args.source = {"art":"Art","clipart":"Clipart","product":"Product","realworld":"Real World"}[args.source]  # 转义「Real World」因空格无法输入命令行的问题
         args.target = {"art":"Art","clipart":"Clipart","product":"Product","realworld":"Real World"}[args.target]
         args.domains = ["Art", "Clipart", "Product", "Real World"]
-        args.class_info = ['Alarm_Clock', 'Backpack', 'Batteries', 'Bed', 'Bike', 'Bottle', 'Bucket', 'Calculator', 'Calendar', 'Candles', 'Chair', 'Clipboards', 'Computer', 'Couch', 'Curtains', 'Desk_Lamp', 'Drill', 'Eraser', 'Exit_Sign', 'Fan', 'File_Cabinet', 'Flipflops', 'Flowers', 'Folder', 'Fork', 'Glasses', 'Hammer', 'Helmet', 'Kettle', 'Keyboard', 'Knives', 'Lamp_Shade', 'Laptop', 'Marker', 'Monitor', 'Mop', 'Mouse', 'Mug', 'Notebook', 'Oven', 'Pan', 'Paper_Clip', 'Pen', 'Pencil', 'Postit_Notes', 'Printer', 'Push_Pin', 'Radio', 'Refrigerator', 'Ruler', 'Scissors', 'Screwdriver', 'Shelf', 'Sink', 'Sneakers', 'Soda', 'Speaker', 'Spoon', 'Table', 'Telephone', 'ToothBrush', 'Toys', 'Trash_Can', 'TV', 'Webcam']
+        # 类名从 <image_root>/classname.txt 读取，每行一个，行号即标签编号（原为写死的列表，和云端列表的标签顺序不一致）
+        args.class_info = load_class_names(os.path.join(IMAGEFILE, args.dataset, "classname.txt"), args.class_num)
         args.sourceStorage = "Source_home"
     elif args.dataset == "VisDA":
         args.class_num = 12
@@ -265,6 +266,9 @@ if __name__ == "__main__":
     assert args.source in args.domains, f"error dataset or domai: {args.source} not in {args.dataset}"
     args.image_root = os.path.join(IMAGEFILE, args.dataset)
     args.device = f"cuda:{args.device}"
+    # 核对类名顺序和源域 / 目标域图片列表的标签一致，否则 CLIP 提示词会配错类别
+    if args.dataset == "OfficeHomeDataset":
+        check_class_names(args.class_info, [os.path.join("dataset", args.dataset, f"{d}.txt") for d in (args.source, args.target)])
 
     filename = os.path.basename(sys.argv[0])[:-3] + "_" + datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
     if args.name == None:

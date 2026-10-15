@@ -95,6 +95,9 @@ for item in "${DOMAINS[@]}"; do
     fi
 done
 
+# 类名文件：main.py 从 dataset/<DATASET>/classname.txt 读取类名，行号即标签编号
+make_link "$DATA_SRC/classname.txt" "$LINK_ROOT/classname.txt"
+
 # -----------------------------------------------------------------------------
 # 检查列表内容是否符合代码要求
 #   代码按空格拆分每一行：第一列 = 图片相对路径（相对于 <域> 文件夹），第二列 = 标签
