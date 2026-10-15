@@ -9,10 +9,16 @@ CLIP 零样本准确率测试（不训练）
   space       下划线换成空格：a photo of a Alarm Clock
 （CLIP 分词器会自动转小写，所以大小写不影响结果）
 
-用法（在项目根目录下，已执行过 link_data.sh）：
-  python zeroshot_clip.py
+用法（在项目根目录下，已执行过 scripts/link_data.sh）：
+  python tools/zeroshot_clip.py
 输出：屏幕打印结果表，并保存到 zeroshot_results/<日期>/result.md、result.json
 """
+import os as _os, sys as _sys
+# 本脚本在 tools/ 下：把项目根目录加入 import 路径（utils / model），并切换到根目录（代码用相对路径读 dataset/、process/）
+_ROOT = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
+_sys.path.insert(0, _ROOT)
+_os.chdir(_ROOT)
+
 import os
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 import json

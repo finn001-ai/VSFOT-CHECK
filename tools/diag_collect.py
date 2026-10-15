@@ -2,13 +2,19 @@
 汇总 diag_ot.py 的结果，并打包成 zip 方便下载
 
 用法：
-  python diag_collect.py --results diag_results/2026_10_14 --process process/Diag
+  python tools/diag_collect.py --results diag_results/2026_10_14 --process process/Diag
 
 输出：
   <results>/summary_all.csv   每个 (任务, 阶段) 一行的关键指标
   <results>/summary_all.md    同上，Markdown 表格，方便直接贴出来看
   <results>.zip               整个结果目录 + 训练日志
 """
+import os as _os, sys as _sys
+# 本脚本在 tools/ 下：把项目根目录加入 import 路径（utils / model），并切换到根目录（代码用相对路径读 dataset/、process/）
+_ROOT = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
+_sys.path.insert(0, _ROOT)
+_os.chdir(_ROOT)
+
 import os
 import csv
 import glob

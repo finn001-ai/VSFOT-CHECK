@@ -1,0 +1,8 @@
+# Python 缓存
+__pycache__/
+
+# 训练输出、日志和结果压缩包（在云端生成，不提交）
+process/
+logs/
+*_results/
+run_all.log

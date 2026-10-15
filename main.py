@@ -16,6 +16,7 @@ from utils.adapterVIT import clipAdapter
 from model.simsiam import SimSiam, fastSimsiam
 import datetime
 import json
+from tqdm import tqdm
 
 
 IMAGEFILE = "dataset"    # 相对项目根目录；图片通过软链接放在 dataset/<数据集>/<域>/ 下
@@ -35,20 +36,13 @@ def start(args, target_dataloader, CLIP_model_raw):
     param_group = [{'params': feature_net.backbone.parameters(), 'lr': args.lr * 0.1},
                    {'params': feature_net.feat_bottleneck.parameters(), 'lr': args.lr},
                    {'params': classifier_net.parameters(), 'lr':args.lr * 0.1}]
-    # 原代码为纯 SGD（无动量、无权重衰减）；论文附录为 momentum 0.9、weight decay 5e-4
-    model_optimizer = torch.optim.SGD(param_group, momentum=args.momentum, weight_decay=args.wd)
+    model_optimizer = torch.optim.SGD(param_group)
     model_LR = torch.optim.lr_scheduler.CosineAnnealingLR(model_optimizer, max_iter, eta_min=0, last_epoch=- 1)
 
-    CLIP_model = clipAdapter(CLIP_model_raw, args.device, adapterCount = args.adaptercount, bottleneck_dim = args.adapter_dim)
-    # 原代码无权重衰减；论文附录为 1e-4
-    clip_optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, CLIP_model.parameters()), lr=5e-5, weight_decay=args.adam_wd)
+    CLIP_model = clipAdapter(CLIP_model_raw, args.device, adapterCount = args.adaptercount)
+    clip_optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, CLIP_model.parameters()), lr=5e-5)
 
-    # --formula paper：类名中的下划线换成空格（Alarm Clock）；code：原代码写法（Alarm_Clock）
-    if args.formula == "paper":
-        class_prompt = [ f'a photo of a {item.replace("_", " ")}' for item in args.class_info]
-    else:
-        class_prompt = [ f'a photo of a {item}' for item in args.class_info]
-    Project.log(f"Prompts (first 5): {class_prompt[:5]}")
+    class_prompt = [ f'a photo of a {item}' for item in args.class_info]
     cls_text = clip.tokenize(class_prompt).to(args.device)
 
     MB = MemoryBank(target_dataloader["test"].dataset.__len__(), args.class_num, device=args.device)
@@ -70,6 +64,9 @@ def start(args, target_dataloader, CLIP_model_raw):
     snapshot_iters = {int(p * max_iter): p for p in args.snapshot_at}
     stop_iter = int(args.stop_at * max_iter)
 
+    # 进度条代替逐步打印；每一步的损失仍完整写入 run_log.txt
+    bar = tqdm(total=min(stop_iter, max_iter), desc=f"{args.source}->{args.target}", dynamic_ncols=True, mininterval=1.0)
+
     while iter_num < max_iter:
         if iter_num in snapshot_iters:
             p = snapshot_iters[iter_num]
@@ -83,9 +80,11 @@ def start(args, target_dataloader, CLIP_model_raw):
                 "vil_bank": MB.vil_bank.cpu(),
                 "model_bank": MB.model_bank.cpu(),
             }, os.path.join(Project.root_path, f"snapshot_p{round(p * 100):03d}.pt"))
-            Project.log(f"Snapshot saved at progress {p} (iter {iter_num})")
+            Project.log(f"Snapshot saved at progress {p} (iter {iter_num})", is_print=False)
+            tqdm.write(f"Snapshot saved at progress {p} (iter {iter_num})")
         if iter_num >= stop_iter:
-            Project.log(f"Stop at progress {args.stop_at} (iter {iter_num})")
+            Project.log(f"Stop at progress {args.stop_at} (iter {iter_num})", is_print=False)
+            tqdm.write(f"Stop at progress {args.stop_at} (iter {iter_num})")
             break
         feature_net.train()
         try:
@@ -115,12 +114,8 @@ def start(args, target_dataloader, CLIP_model_raw):
             clipSim = vilImgFeat @ vilTextFeat.T                                    # [B, C]
             clipProb = torch.softmax(100*clipSim, dim = 1)                          # [B, C]
 
-            # Cv 第二项（交叉熵）所用的概率：paper = 模型预测（论文式 3）；code = CLIP 概率（原代码）
-            ceProb = modelProb if args.formula == "paper" else clipProb
             if args.align_mode == "ot":
-                # μ_p：paper = 本批 VLM 预测均值（论文式 6）；code = 记忆库均值（原代码）
-                mu_p = clipProb.mean(dim=0) if args.formula == "paper" else vilMemoryMean
-                gamma1 = getGamma(args, clipProb.T, mu_p, args.otReg, modelProb=ceProb.T)     # [C, B]
+                gamma1 = getGamma(args, clipProb.T, vilMemoryMean, args.otReg)     # [C, B]
             # 消融：不做 OT，直接用 CLIP 的标签当计划；每列质量 1/B，和 OT 计划的列边际一致，损失量级可比
             elif args.align_mode == "clip_soft":
                 gamma1 = clipProb.T / clipProb.size(0)                              # [C, B]
@@ -130,7 +125,7 @@ def start(args, target_dataloader, CLIP_model_raw):
             # ot - clip_sharp = 边际投影的作用；clip_sharp - clip_soft = 锐化的作用
             elif args.align_mode == "clip_sharp":
                 feat_dist = 1 - clipProb.T                                          # [C, B]
-                cost = feat_dist / feat_dist.max() - torch.log(ceProb.T + 1e-6)     # 同 getGamma 的 cost_matrix
+                cost = feat_dist / feat_dist.max() - torch.log(clipProb.T + 1e-6)   # 同 getGamma 的 cost_matrix
                 gamma1 = torch.softmax(-cost / args.otReg, dim=0) / clipProb.size(0)   # 每列 ∝ exp(-cost/ε)，质量 1/B
 
         ################################################
@@ -139,19 +134,20 @@ def start(args, target_dataloader, CLIP_model_raw):
         modelProbGrad = torch.softmax(modelLogitsGradW, dim=1)
         gamma2, cost_matrix = getGamma_self(args, modelProbGrad, modelFeatGradW, modelMemoryMean, classifier_net, reg=args.otReg)
 
-        # 论文式 2：L_Align = Σ Γ*·Cm；原代码（--formula code）先把 gamma1 乘以 1/类频率
-        if args.formula == "code":
-            with torch.no_grad():
-                class_weights = 1.0 / torch.clamp(MB.model_bank.mean(dim=0), min=1e-4)
-            gamma1 = gamma1 * class_weights.unsqueeze(1)
+        with torch.no_grad():
+            total_cls = MB.model_bank.mean(dim=0)
+            cls_freq = torch.clamp(total_cls, min=1e-4)
+            class_weights = 1.0 / cls_freq
+        gamma1 = gamma1 * class_weights.unsqueeze(1)
         loss_align = torch.sum(gamma1 * cost_matrix)
 
         loss_ctr = fastSimsiam(strong_img, strong2_img, SSNB)
 
         loss_iml = IML(modelProbGrad)
 
-        # 论文式 13：各损失权重为 1；原代码（--formula code）对齐损失权重为 min(1, progress×2)
-        weight_align = min(1.0, iter_num / max_iter * 2) if args.formula == "code" else 1.0
+        progress = iter_num / max_iter
+        weight_align = min(1.0, progress * 2)  # [1 -> 2]
+
         loss1 = args.weightalign * weight_align * loss_align + \
                 args.weightctr * loss_ctr + \
                 args.weightiml * loss_iml
@@ -170,16 +166,11 @@ def start(args, target_dataloader, CLIP_model_raw):
 
         logits_clip = (100.0 * clipFeatWGrad @ clipTextFeatGrad.T)
 
-        # 论文式 10、11：保留 top-k 类，在保留的类上做 softmax 得到 q̃^m，其余类为 0
-        # （原代码：归一化后 ×10，再对全部类做 softmax）
         top3_probs, top3_indices = torch.topk(modelProb, k=args.topk, dim=1)
         soft_labels = torch.zeros_like(logits_clip)
-        if args.formula == "paper":
-            soft_labels.scatter_(1, top3_indices, torch.softmax(top3_probs, dim=1))
-        else:   # 原代码：归一化后 ×10，再对全部类做 softmax
-            soft_labels.scatter_(1, top3_indices, top3_probs)
-            soft_labels = soft_labels / (soft_labels.sum(dim=1, keepdim=True) + 1e-6)
-            soft_labels = torch.softmax(soft_labels * 10, dim=1)
+        soft_labels.scatter_(1, top3_indices, top3_probs)
+        soft_labels = soft_labels / (soft_labels.sum(dim=1, keepdim=True) + 1e-6)
+        soft_labels = torch.softmax(soft_labels * 10, dim=1)
 
         probs_vil = torch.softmax(logits_clip, dim=1)
         log_vil = torch.log(probs_vil + 1e-6)
@@ -198,7 +189,9 @@ def start(args, target_dataloader, CLIP_model_raw):
 
         ################################################
         log_str = f'Task: SFDA, Test Target, {args.source} -> {args.target}, Iter: {iter_num:4d}/{max_iter:4d}; Align: {loss_align.item():.4f}; CTR: {loss_ctr.item():.4f}; IML: {loss_iml.item():.4f}; VLM: {loss_vil.item():.4f};'
-        Project.log(log_str)
+        Project.log(log_str, is_print=False)
+        bar.set_postfix(align=f"{loss_align.item():.3f}", ctr=f"{loss_ctr.item():.3f}", iml=f"{loss_iml.item():.3f}",
+                        vlm=f"{loss_vil.item():.3f}", best=f"{best_acc:.4f}", refresh=False)
         if iter_num != 0 and (iter_num % eval_gap == 0 or iter_num == max_iter - 1):
             model_cm, model_oa, model_aa, model_class_acc = modeleval(args, feature_net, classifier_net, target_dataloader["test"])
             ModellineAcc = lineClassAcc(args, model_class_acc, iter_num, header=False)
@@ -208,8 +201,11 @@ def start(args, target_dataloader, CLIP_model_raw):
             if acc_total >= best_acc:
                 best_acc = acc_total
             log_str = f'Task: SFDA, Test Target, {args.source} -> {args.target}, Iter: {iter_num:4d}/{max_iter:4d}; Now Acc: {acc_total:.4f}; Best Acc: {best_acc:.4f}'
-            Project.log(log_str)
+            Project.log(log_str, is_print=False)
+            tqdm.write(f"[eval] iter {iter_num:4d}/{max_iter}  acc {acc_total:.4f}  best {best_acc:.4f}")
         iter_num += 1
+        bar.update(1)
+    bar.close()
 
 
 if __name__ == "__main__":
@@ -229,13 +225,6 @@ if __name__ == "__main__":
 
     parser.add_argument("--lr", default=1e-2, type=float, metavar="model_LR", help="initial learning rate", dest="lr")
     parser.add_argument('--adaptercount', type=int, default=3, choices=[1,2,3,4,5,6,7,8,9,10,11,12])
-    # 以下默认值 = 原代码行为；论文附录配置：--momentum 0.9 --wd 5e-4 --adam_wd 1e-4 --adapter_dim 64（Office-Home 20 epoch）
-    parser.add_argument('--momentum', type=float, default=0.0, help="模型 SGD 动量（论文 0.9）")
-    parser.add_argument('--wd', type=float, default=0.0, help="模型 SGD 权重衰减（论文 5e-4）")
-    parser.add_argument('--adam_wd', type=float, default=0.0, help="CLIP adapter 的 Adam 权重衰减（论文 1e-4）")
-    parser.add_argument('--adapter_dim', type=int, default=256, help="CLIP adapter 隐藏维度（论文 64）")
-    # paper：按论文正文公式（提示词去下划线、式 2/3/6/11/13）；code：原公开代码的写法（提交 e83d8b8 之前）
-    parser.add_argument('--formula', type=str, default="paper", choices=["paper", "code"])
 
     parser.add_argument('--otReg', type=float, default=0.2)
 
@@ -299,6 +288,14 @@ if __name__ == "__main__":
     Project.log(f"Task: SFDA, Source:{args.source}, Target:{args.target}")
     backup_files_and_folders(Project.root_path, sys.argv[0])
 
+    # 训练计时：开始 / 结束 / 总耗时（含加载 CLIP、初始化记忆库），写入 run_log.txt
+    t_begin = datetime.datetime.now()
+    Project.log(f"【训练开始】{t_begin.strftime('%Y-%m-%d %H:%M:%S')}", haveTime=False)
+
     CLIP_model, CLIP_preprocess = clip.load(args.clipVersion, device=args.device)
     target_dataloader = getDataloaderSFDA5X(args, args.target, CLIP_preprocess, True)
     start(args, target_dataloader, CLIP_model)
+
+    t_end = datetime.datetime.now()
+    Project.log(f"【训练结束】{t_end.strftime('%Y-%m-%d %H:%M:%S')}", haveTime=False)
+    Project.log(f"【总耗时】{datetime.timedelta(seconds=int((t_end - t_begin).total_seconds()))}", haveTime=False)

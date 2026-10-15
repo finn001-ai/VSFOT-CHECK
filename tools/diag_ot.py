@@ -7,13 +7,19 @@
   C. 理论缺口：Cm 下的精确最优代价 vs Cv 方案（训练实际用的 gamma1）在 Cm 下的代价
 
 用法（在项目根目录下）：
-  python diag_ot.py --snapshot process/Diag/Ar2Cl/snapshot_p000.pt --out diag_results/Ar2Cl/p000
+  python tools/diag_ot.py --snapshot process/Diag/Ar2Cl/snapshot_p000.pt --out diag_results/Ar2Cl/p000
 
 输出（--out 目录下）：
   batches.csv    每批一行，A 和 C 的逐批指标
   grid.csv       每批 × 每个 (模式, 尺度, ε) 一行，B 的逐批指标
   summary.json   汇总统计（均值 / 中位数 / P90）和三个判据的结论
 """
+import os as _os, sys as _sys
+# 本脚本在 tools/ 下：把项目根目录加入 import 路径（utils / model），并切换到根目录（代码用相对路径读 dataset/、process/）
+_ROOT = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
+_sys.path.insert(0, _ROOT)
+_os.chdir(_ROOT)
+
 import os
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 import sys
@@ -145,7 +151,7 @@ def main():
 
     # ---------------- 恢复模型 ----------------
     raw_clip, preprocess = clip.load(A.clipVersion, device=device)
-    clip_model = clipAdapter(raw_clip, device, adapterCount=A.adaptercount, bottleneck_dim=getattr(A, "adapter_dim", 256))
+    clip_model = clipAdapter(raw_clip, device, adapterCount=A.adaptercount)
     missing, unexpected = clip_model.load_state_dict(snap["adapter"], strict=False)
     assert not unexpected, f"adapter 参数多余: {unexpected[:3]}"
     assert not [k for k in missing if "adapter" in k], "adapter 参数没有完整载入"
@@ -173,7 +179,7 @@ def main():
     sim_all = torch.zeros(N, C, device=device)
     labels_all = torch.zeros(N, dtype=torch.long, device=device)
     with torch.no_grad():
-        text = clip.tokenize([f"a photo of a {c.replace('_', ' ')}" for c in A.class_info]).to(device)
+        text = clip.tokenize([f"a photo of a {c}" for c in A.class_info]).to(device)
         text_feat = clip_model.encode_text(text)
         text_feat = text_feat / text_feat.norm(dim=-1, keepdim=True)
         loader = DataLoader(dataset, batch_size=128, shuffle=False, num_workers=cli.num_workers)
@@ -222,7 +228,7 @@ def main():
                 gammas = {}
                 for mu_name, mu_arg, mu_vec in [("uniform", None, torch.full((C,), 1.0 / C, device=device)),
                                                 ("bank", mu_bank, mu_bank)]:
-                    g, nc = run_sinkhorn(getGamma, A, clip_prob.T, mu_arg, A.otReg, model_prob.T)
+                    g, nc = run_sinkhorn(getGamma, A, clip_prob.T, mu_arg, A.otReg)
                     gammas[mu_name] = g
                     re, ce = marginal_err(g, mu_vec, B)
                     row[f"{mu_name}_row_err"] = re
@@ -265,7 +271,7 @@ def main():
                     mu_joint = torch.softmax(s * sim_all[idx], dim=1).mean(dim=0)
                     for mode, mu_vec in [("joint", mu_joint), ("prob_only", mu_bank)]:
                         for eps in cli.regs:
-                            g, nc = run_sinkhorn(getGamma, A, cp.T, mu_vec, eps, model_prob.T)
+                            g, nc = run_sinkhorn(getGamma, A, cp.T, mu_vec, eps)
                             st = plan_stats(g, y, absent)
                             re, _ = marginal_err(g, mu_vec, B)
                             grid_rows.append({"seed": seed, "batch": bi, "mode": mode, "scale": s, "eps": eps,

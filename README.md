@@ -1,5 +1,26 @@
 ## Vision-Language Model Guided Source-Free Domain Adaptation via Optimal Transport
 
+> ### 本仓库使用说明（复现版）
+>
+> 所有命令都在**项目根目录**下运行（Jupyter 里在前面加 `!`）。
+>
+> | 步骤 | 命令 | 说明 |
+> |---|---|---|
+> | 1. 数据软链接（只需一次） | `bash scripts/link_data.sh` | 把云端数据链接到 `dataset/OfficeHomeDataset/`，含 `classname.txt` |
+> | 2. 训练源模型 + 12 个任务 | `bash scripts/run.sh` | 正式训练，结果在 `process/Source_home/`、`process/OfficeHome/` |
+> | 3. OT 消融 | `bash scripts/run_ablation.sh` | 结果打包到 `ablation_results/<日期>.zip` |
+> | 诊断：训练快照 + OT 指标 | `bash scripts/run_diag.sh` | 结果打包到 `diag_results/<日期>.zip` |
+> | 诊断：μ_p 消融等 | `bash scripts/run_diag_quick.sh` | 需要先跑上一行的快照 |
+> | 检查 CLIP 零样本准确率 | `python tools/zeroshot_clip.py` | 应为平均 79.04%（论文表 4） |
+>
+> - `scripts/`：运行脚本，配置都写在每个脚本开头，有注释。`tools/`：被脚本调用的汇总 / 诊断程序。
+> - 和公开代码的区别：Office-Home 类名改为从 `classname.txt` 读取（原写死的类名在第 58–63 类和标签错位）；
+>   `main.py` 新增 `--align_mode`（OT 消融）、`--snapshot_at` / `--stop_at`（诊断快照）、进度条和训练计时。
+>   训练公式和超参与公开代码完全一致。修复类名后 Ar→Cl = 74.4%（论文 75.0%）。
+> - 下方原 README 中 `--name Source\Source_art` 的反斜杠在 Linux 下会被吞掉，请用 `scripts/run.sh`，
+>   它会按 `Source_home/Source_<域>` 命名（realworld 为 `Source_real world`）。
+> - 实验记录在本地 `archive/`（不提交）。
+
 ### Abstract
 
 Unsupervised domain adaptation transfers knowledge from a labeled source domain to an unlabeled target domain. When source data cannot be accessed, source-free domain adaptation (SFDA) becomes a practical alternative. However, existing SFDA methods mainly rely on pseudo-label based self-training, which often accumulates noise and bias under large domain gaps. We propose VSFOT, a framework that leverages a pretrained Vision-Language Model (VLM) to guide optimal transport (OT) alignment between target features and source prototypes. Instead of relying on unreliable pseudo-labels, VSFOT employs VLM-derived semantic priors and an OT-based matching strategy to achieve stable and reliable adaptation. To further enhance domain alignment, VSFOT incorporates a bidirectional distillation mechanism in which the model learns semantic consistency from the VLM, while the VLM is refined using task-specific cues from the model. These two stages alternate during training. By combining the generalization ability of the VLM with the discriminative power of the task model, VSFOT achieves robust, source-free adaptation and consistently outperforms existing SFDA methods on four benchmark datasets.

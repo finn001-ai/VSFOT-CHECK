@@ -2,13 +2,13 @@
 # =============================================================================
 # 一键训练：训练源模型 -> 源无关域适配（Office-Home）
 #
-# 运行前请先执行一次 bash link_data.sh 建立数据软链接。
+# 运行前请先执行一次 bash scripts/link_data.sh 建立数据软链接。
 #
 # 用法（在项目根目录下执行）：
-#   bash run.sh
+#   bash scripts/run.sh
 #
 # 后台运行（断开 SSH 也不会中断）：
-#   nohup bash run.sh > run_all.log 2>&1 &
+#   nohup bash scripts/run.sh > run_all.log 2>&1 &
 #
 # 只想跑某一部分时，修改下方「阶段开关」或「任务列表」即可。
 # =============================================================================
@@ -79,13 +79,13 @@ ADAPT_PAIRS=(
 # =============================================================================
 
 # 切换到脚本所在目录（即项目根目录），因为代码用相对路径读 dataset/ 和写 process/
-cd "$(dirname "$0")"
+cd "$(dirname "$0")/.."    # 切换到项目根目录（本脚本在 scripts/ 下）
 mkdir -p "$LOG_DIR"
 
 # 检查软链接是否已建立
 for d in "Art" "Clipart" "Product" "Real World"; do
     if [ ! -d "dataset/$DATASET/$d" ]; then
-        echo "[错误] 找不到 dataset/$DATASET/${d}，请先执行 bash link_data.sh"; exit 1
+        echo "[错误] 找不到 dataset/$DATASET/${d}，请先执行 bash scripts/link_data.sh"; exit 1
     fi
 done
 

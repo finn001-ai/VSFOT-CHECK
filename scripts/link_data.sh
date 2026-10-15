@@ -3,7 +3,7 @@
 # 建立 Office-Home 数据软链接（只需执行一次，重复执行也没问题）
 #
 # 用法（在项目根目录下执行）：
-#   bash link_data.sh
+#   bash scripts/link_data.sh
 #
 # 执行后项目内的目录结构：
 #   dataset/OfficeHomeDataset/
@@ -51,7 +51,7 @@ USE_CLOUD_LIST=1
 # =============================================================================
 
 # 切换到脚本所在目录（即项目根目录），保证下面的相对路径正确
-cd "$(dirname "$0")"
+cd "$(dirname "$0")/.."    # 切换到项目根目录（本脚本在 scripts/ 下）
 
 LINK_ROOT="dataset/$DATASET"
 if [ ! -d "$LINK_ROOT" ]; then

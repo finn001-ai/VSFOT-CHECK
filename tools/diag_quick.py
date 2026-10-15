@@ -1,5 +1,5 @@
 """
-快速诊断（不训练，直接用 run_diag.sh 保存的快照）
+快速诊断（不训练，直接用 scripts/run_diag.sh 保存的快照）
 
   [2] μ_p 消融：同一批、同一 CLIP 概率，只换 Sinkhorn 的类别边际 μ_p，看计划质量
         bank        记忆库 CLIP 概率的批均值（main.py 实际用的）
@@ -11,9 +11,15 @@
   [H3 修正] 分母改用 gamma1 实际的行 / 列边际求精确最优，使分子分母在同一可行集里比较
 
 用法（在项目根目录下）：
-  python diag_quick.py --snapshot process/Diag/Ar2Cl/snapshot_p000.pt --out diag_quick_results/Ar2Cl/p000
-  python diag_quick.py --collect diag_quick_results        # 汇总所有结果并打包 zip
+  python tools/diag_quick.py --snapshot process/Diag/Ar2Cl/snapshot_p000.pt --out diag_quick_results/Ar2Cl/p000
+  python tools/diag_quick.py --collect diag_quick_results        # 汇总所有结果并打包 zip
 """
+import os as _os, sys as _sys
+# 本脚本在 tools/ 下：把项目根目录加入 import 路径（utils / model），并切换到根目录（代码用相对路径读 dataset/、process/）
+_ROOT = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
+_sys.path.insert(0, _ROOT)
+_os.chdir(_ROOT)
+
 import os
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 import csv
@@ -56,7 +62,7 @@ def run(cli):
     print(f"[快照] {cli.snapshot}  progress={snap['progress']}  iter={snap['iter']}/{snap['max_iter']}")
 
     raw_clip, preprocess = clip.load(A.clipVersion, device=device)
-    clip_model = clipAdapter(raw_clip, device, adapterCount=A.adaptercount, bottleneck_dim=getattr(A, "adapter_dim", 256))
+    clip_model = clipAdapter(raw_clip, device, adapterCount=A.adaptercount)
     missing, unexpected = clip_model.load_state_dict(snap["adapter"], strict=False)
     assert not unexpected and not [k for k in missing if "adapter" in k], "adapter 参数载入不完整"
     clip_model.eval()
@@ -78,7 +84,7 @@ def run(cli):
     sim_all = torch.zeros(N, C, device=device)
     labels_all = torch.zeros(N, dtype=torch.long, device=device)
     with torch.no_grad():
-        text = clip.tokenize([f"a photo of a {c.replace('_', ' ')}" for c in A.class_info]).to(device)
+        text = clip.tokenize([f"a photo of a {c}" for c in A.class_info]).to(device)
         text_feat = clip_model.encode_text(text)
         text_feat = text_feat / text_feat.norm(dim=-1, keepdim=True)
         for item in tqdm(DataLoader(dataset, batch_size=128, num_workers=cli.num_workers), desc="CLIP 相似度"):
@@ -126,7 +132,7 @@ def run(cli):
                     # true_batch 在缺席类上为 0，Sinkhorn 需要正的边际，加极小值后重新归一化
                     mu = mus[name].clamp_min(1e-8)
                     mu = mu / mu.sum()
-                    g, _ = run_sinkhorn(getGamma, A, clip_prob.T, mu, A.otReg, model_prob.T)   # [C, B]
+                    g, _ = run_sinkhorn(getGamma, A, clip_prob.T, mu, A.otReg)   # [C, B]
                     if name == "bank":
                         g_bank = g
                     if torch.isnan(g).any() or g.sum() <= 0:

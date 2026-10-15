@@ -8,13 +8,13 @@
 #               ot - clip_sharp = 边际投影的作用；clip_sharp - clip_soft = 锐化的作用
 # 其余（类权重、SimSiam、IM 损失、CLIP 反向蒸馏、学习率等）完全不变
 #
-# 前提：源模型已训练好（process/Source_home/...）
+# 前提：已执行 scripts/link_data.sh，源模型已训练好（process/Source_home/...）
 #
-# 在 Jupyter 里运行：
-#   !bash run_ablation.sh
-# 跑完下载 ablation_results/<日期>.zip（汇总会包含之前已完成的所有组）
+# 在 Jupyter 里运行（项目根目录下）：
+#   !bash scripts/run_ablation.sh
+# 跑完下载 ablation_results/<日期>.zip
 #
-# 已完成的组（有 .done 标记）会自动跳过，所以可以放心重跑。
+# 已完成的组（有 .done 标记）会自动跳过，可以放心重跑；中断的组按提示删除目录后重跑。
 # 耗时参考：目标域为 Clipart 的任务每组约 30 分钟，Pr2Re 每组约 85 分钟
 # =============================================================================
 
@@ -26,27 +26,30 @@ set -euo pipefail
 DATASET="OfficeHomeDataset"
 PYTHON="python -u"
 GPU=0
-EPOCHS=40
+EPOCHS=40              # README 命令的设置
+
+# 随机种子；每个种子把下面所有组各跑一遍，汇总时取均值 ± 标准差
+SEEDS=(42)
 
 # 任务和要跑的模式，格式 "源域:目标域:模式1,模式2,..."
 # 不想跑的行在前面加 # 注释掉；想加模式直接在逗号后追加
 RUNS=(
-    # 第 1 轮（2026-10-15 已完成）+ 第 2 轮补 clip_sharp
-    "art:clipart:ot,clip_soft,clip_hard,clip_sharp"
-    "product:realworld:ot,clip_soft,clip_hard"
-    # 第 2 轮：更多 CLIP 较弱的难任务（目标域 Clipart），验证「越难增益越大」
+    "art:clipart:ot,clip_soft,clip_sharp"
     "product:clipart:ot,clip_soft,clip_sharp"
     "realworld:clipart:ot,clip_soft,clip_sharp"
+    # "product:realworld:ot,clip_soft,clip_sharp"     # 简单任务对照，每组约 85 分钟
 )
 
-# 训练输出到 process/<TRAIN_ROOT>/<模式>/<任务>/
-TRAIN_ROOT="Ablation"
+# 训练输出到 process/<TRAIN_ROOT>/<模式>/<任务>_s<种子>/
+# AblationFix = 类名修复后的消融；旧的 process/Ablation/ 是修复前的结果，保留做对比
+TRAIN_ROOT="AblationFix"
 RESULT_DIR="ablation_results/$(date +%Y_%m_%d)"
 
 # =============================================================================
 # 以下一般不需要修改
 # =============================================================================
-cd "$(dirname "$0")"
+# 切换到项目根目录（本脚本在 scripts/ 下）
+cd "$(dirname "$0")/.."
 
 abbr() {
     case "$1" in
@@ -55,20 +58,22 @@ abbr() {
     esac
 }
 
-# 先展开成「源域 目标域 任务名 模式」的列表，并统计还需要训练几组
+# 先展开成「源域 目标域 任务名 模式 种子」的列表，并统计还需要训练几组
 todo=()
 n_done=0
-for run in "${RUNS[@]}"; do
-    IFS=":" read -r s t modes <<< "$run"
-    task="$(abbr "$s")2$(abbr "$t")"
-    IFS="," read -r -a mode_list <<< "$modes"
-    for mode in "${mode_list[@]}"; do
-        if [ -f "process/$TRAIN_ROOT/$mode/$task/.done" ]; then
-            echo "==> ${task} ${mode}：已完成，跳过"
-            n_done=$((n_done + 1))
-        else
-            todo+=("$s $t $task $mode")
-        fi
+for seed in "${SEEDS[@]}"; do
+    for run in "${RUNS[@]}"; do
+        IFS=":" read -r s t modes <<< "$run"
+        task="$(abbr "$s")2$(abbr "$t")"
+        IFS="," read -r -a mode_list <<< "$modes"
+        for mode in "${mode_list[@]}"; do
+            if [ -f "process/$TRAIN_ROOT/$mode/${task}_s${seed}/.done" ]; then
+                echo "==> ${task} ${mode} seed=${seed}：已完成，跳过"
+                n_done=$((n_done + 1))
+            else
+                todo+=("$s $t $task $mode $seed")
+            fi
+        done
     done
 done
 echo "==> 已完成 ${n_done} 组，本次需要训练 ${#todo[@]} 组"
@@ -76,9 +81,9 @@ echo "==> 已完成 ${n_done} 组，本次需要训练 ${#todo[@]} 组"
 k=0
 # ${todo[@]+...}：数组为空时不展开，避免 set -u 在旧版 bash 下报错
 for item in ${todo[@]+"${todo[@]}"}; do
-    read -r s t task mode <<< "$item"
+    read -r s t task mode seed <<< "$item"
     k=$((k + 1))
-    dir="process/$TRAIN_ROOT/$mode/$task"
+    dir="process/$TRAIN_ROOT/$mode/${task}_s${seed}"
 
     # main.py 遇到同名目录会自动加时间戳另建，导致汇总时找不到，所以提前拦下
     if [ -d "$dir" ]; then
@@ -87,20 +92,21 @@ for item in ${todo[@]+"${todo[@]}"}; do
 
     echo ""
     echo "################################################################"
-    echo "==> 第 ${k}/${#todo[@]} 组：${task}（${s} -> ${t}），模式 ${mode}"
+    echo "==> 第 ${k}/${#todo[@]} 组：${task}（${s} -> ${t}），模式 ${mode}，seed=${seed}"
     echo "################################################################"
     $PYTHON main.py \
         --device "$GPU" \
-        --name "$TRAIN_ROOT/$mode/$task" \
+        --name "$TRAIN_ROOT/$mode/${task}_s${seed}" \
         --epochs "$EPOCHS" \
         --dataset "$DATASET" \
         --source "$s" \
         --target "$t" \
+        --seed "$seed" \
         --align_mode "$mode"
     # 训练正常结束后才写完成标记
     touch "$dir/.done"
 done
 
 echo "==> 汇总"
-$PYTHON ablation_collect.py --process "process/$TRAIN_ROOT" --out "$RESULT_DIR"
+$PYTHON tools/ablation_collect.py --process "process/$TRAIN_ROOT" --out "$RESULT_DIR"
 echo "==> 完成，下载 ${RESULT_DIR}.zip 发给我即可"

@@ -5,10 +5,10 @@
 #   2. 对每个快照运行 diag_ot.py
 #   3. 汇总结果并打包成 zip，下载后发给我分析
 #
-# 前提：已经执行过 bash link_data.sh，且源模型已训练好（process/Source_home/...）
+# 前提：已经执行过 bash scripts/link_data.sh，且源模型已训练好（process/Source_home/...）
 #
 # 在 Jupyter 里运行（输出会实时显示在单元格里）：
-#   !bash run_diag.sh
+#   !bash scripts/run_diag.sh
 # =============================================================================
 
 # 任一命令出错就立即退出；使用未定义变量也会报错；管道中任一环节失败视为失败
@@ -48,7 +48,7 @@ TASKS=(
 )
 
 # 训练输出目录（快照存在 process/Diag/<任务>/ 下）和诊断结果目录
-TRAIN_ROOT="Diag"
+TRAIN_ROOT="DiagFix"     # 类名修复后的快照；旧的 process/Diag/ 是修复前的，不能再用
 RESULT_DIR="diag_results/$(date +%Y_%m_%d)"
 
 # =============================================================================
@@ -56,7 +56,7 @@ RESULT_DIR="diag_results/$(date +%Y_%m_%d)"
 # =============================================================================
 
 # 切换到脚本所在目录（即项目根目录）
-cd "$(dirname "$0")"
+cd "$(dirname "$0")/.."    # 切换到项目根目录（本脚本在 scripts/ 下）
 mkdir -p "$RESULT_DIR"
 
 abbr() {
@@ -107,7 +107,7 @@ for pair in "${TASKS[@]}"; do
         fi
         echo "==> ${task} ${stage}：诊断"
         mkdir -p "$out"
-        $PYTHON diag_ot.py \
+        $PYTHON tools/diag_ot.py \
             --snapshot "$train_dir/snapshot_${stage}.pt" \
             --out "$out" \
             --device "$GPU" \
@@ -123,5 +123,5 @@ done
 # 第 3 步：汇总并打包
 # -----------------------------------------------------------------------------
 echo "==> 汇总"
-$PYTHON diag_collect.py --results "$RESULT_DIR" --process "process/$TRAIN_ROOT"
+$PYTHON tools/diag_collect.py --results "$RESULT_DIR" --process "process/$TRAIN_ROOT"
 echo "==> 完成，下载 ${RESULT_DIR}.zip 发给我即可"
