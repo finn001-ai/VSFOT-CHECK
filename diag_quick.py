@@ -56,7 +56,7 @@ def run(cli):
     print(f"[快照] {cli.snapshot}  progress={snap['progress']}  iter={snap['iter']}/{snap['max_iter']}")
 
     raw_clip, preprocess = clip.load(A.clipVersion, device=device)
-    clip_model = clipAdapter(raw_clip, device, adapterCount=A.adaptercount)
+    clip_model = clipAdapter(raw_clip, device, adapterCount=A.adaptercount, bottleneck_dim=getattr(A, "adapter_dim", 256))
     missing, unexpected = clip_model.load_state_dict(snap["adapter"], strict=False)
     assert not unexpected and not [k for k in missing if "adapter" in k], "adapter 参数载入不完整"
     clip_model.eval()

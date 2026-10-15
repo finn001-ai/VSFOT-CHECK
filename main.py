@@ -35,11 +35,13 @@ def start(args, target_dataloader, CLIP_model_raw):
     param_group = [{'params': feature_net.backbone.parameters(), 'lr': args.lr * 0.1},
                    {'params': feature_net.feat_bottleneck.parameters(), 'lr': args.lr},
                    {'params': classifier_net.parameters(), 'lr':args.lr * 0.1}]
-    model_optimizer = torch.optim.SGD(param_group)
+    # 原代码为纯 SGD（无动量、无权重衰减）；论文附录为 momentum 0.9、weight decay 5e-4
+    model_optimizer = torch.optim.SGD(param_group, momentum=args.momentum, weight_decay=args.wd)
     model_LR = torch.optim.lr_scheduler.CosineAnnealingLR(model_optimizer, max_iter, eta_min=0, last_epoch=- 1)
 
-    CLIP_model = clipAdapter(CLIP_model_raw, args.device, adapterCount = args.adaptercount)
-    clip_optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, CLIP_model.parameters()), lr=5e-5)
+    CLIP_model = clipAdapter(CLIP_model_raw, args.device, adapterCount = args.adaptercount, bottleneck_dim = args.adapter_dim)
+    # 原代码无权重衰减；论文附录为 1e-4
+    clip_optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, CLIP_model.parameters()), lr=5e-5, weight_decay=args.adam_wd)
 
     class_prompt = [ f'a photo of a {item}' for item in args.class_info]
     cls_text = clip.tokenize(class_prompt).to(args.device)
@@ -214,6 +216,11 @@ if __name__ == "__main__":
 
     parser.add_argument("--lr", default=1e-2, type=float, metavar="model_LR", help="initial learning rate", dest="lr")
     parser.add_argument('--adaptercount', type=int, default=3, choices=[1,2,3,4,5,6,7,8,9,10,11,12])
+    # 以下默认值 = 原代码行为；论文附录配置：--momentum 0.9 --wd 5e-4 --adam_wd 1e-4 --adapter_dim 64（Office-Home 20 epoch）
+    parser.add_argument('--momentum', type=float, default=0.0, help="模型 SGD 动量（论文 0.9）")
+    parser.add_argument('--wd', type=float, default=0.0, help="模型 SGD 权重衰减（论文 5e-4）")
+    parser.add_argument('--adam_wd', type=float, default=0.0, help="CLIP adapter 的 Adam 权重衰减（论文 1e-4）")
+    parser.add_argument('--adapter_dim', type=int, default=256, help="CLIP adapter 隐藏维度（论文 64）")
 
     parser.add_argument('--otReg', type=float, default=0.2)
 

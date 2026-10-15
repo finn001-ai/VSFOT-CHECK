@@ -145,7 +145,7 @@ def main():
 
     # ---------------- 恢复模型 ----------------
     raw_clip, preprocess = clip.load(A.clipVersion, device=device)
-    clip_model = clipAdapter(raw_clip, device, adapterCount=A.adaptercount)
+    clip_model = clipAdapter(raw_clip, device, adapterCount=A.adaptercount, bottleneck_dim=getattr(A, "adapter_dim", 256))
     missing, unexpected = clip_model.load_state_dict(snap["adapter"], strict=False)
     assert not unexpected, f"adapter 参数多余: {unexpected[:3]}"
     assert not [k for k in missing if "adapter" in k], "adapter 参数没有完整载入"
