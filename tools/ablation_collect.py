@@ -1,11 +1,11 @@
 """
 汇总 OT 消融实验的结果，并打包成 zip
 
-从 runs/process/<训练目录>/<模式>/<任务>_s<种子>/run_log.txt 中读取每次评估的准确率和训练耗时；
+从 runs/<训练目录>/<模式>/<任务>_s<种子>/run_log.txt 中读取每次评估的准确率和训练耗时；
 同一任务、同一模式的多个种子取平均。
 
 用法（一般由 scripts/run_ablation.sh 调用）：
-  python tools/ablation_collect.py --process runs/process/AblationFix --out runs/ablation_results/2026_10_16
+  python tools/ablation_collect.py --process runs/AblationFix --out runs/ablation_results/2026_10_16
 
 输出：
   <out>/summary.md     每个任务一张表 + 训练曲线 + 分解表
@@ -16,7 +16,7 @@
 """
 
 import os as _os, sys as _sys
-# 本脚本在 tools/ 下：把项目根目录加入 import 路径（utils / model），并切换到根目录（代码用相对路径读 dataset/、runs/process/）
+# 本脚本在 tools/ 下：把项目根目录加入 import 路径（utils / model），并切换到根目录（代码用相对路径读 dataset/、runs/）
 _ROOT = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
 _sys.path.insert(0, _ROOT)
 _os.chdir(_ROOT)
@@ -57,7 +57,7 @@ def fmt_min(sec):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--process", type=str, required=True, help="训练输出目录，如 runs/process/AblationFix")
+    parser.add_argument("--process", type=str, required=True, help="训练输出目录，如 runs/AblationFix")
     parser.add_argument("--out", type=str, required=True)
     a = parser.parse_args()
     os.makedirs(a.out, exist_ok=True)

@@ -5,7 +5,7 @@
 #   2. 对每个快照运行 diag_ot.py
 #   3. 汇总结果并打包成 zip，下载后发给我分析
 #
-# 前提：已经执行过 bash scripts/link_data.sh，且源模型已训练好（runs/process/Source_home/...）
+# 前提：已经执行过 bash scripts/link_data.sh，且源模型已训练好（runs/Source_home/...）
 #
 # 在 Jupyter 里运行（输出会实时显示在单元格里）：
 #   !bash scripts/run_diag.sh
@@ -47,8 +47,8 @@ TASKS=(
     "product:realworld"
 )
 
-# 训练输出目录（快照存在 runs/process/Diag/<任务>/ 下）和诊断结果目录
-TRAIN_ROOT="DiagFix"     # 类名修复后的快照；旧的 runs/process/Diag/ 是修复前的，不能再用
+# 训练输出目录（快照存在 runs/Diag/<任务>/ 下）和诊断结果目录
+TRAIN_ROOT="DiagFix"     # 类名修复后的快照；旧的 runs/Diag/ 是修复前的，不能再用
 RESULT_DIR="runs/diag_results/$(date +%Y_%m_%d)"
 
 # =============================================================================
@@ -70,7 +70,7 @@ for pair in "${TASKS[@]}"; do
     s="${pair%%:*}"
     t="${pair##*:}"
     task="$(abbr "$s")2$(abbr "$t")"
-    train_dir="runs/process/$TRAIN_ROOT/$task"
+    train_dir="runs/$TRAIN_ROOT/$task"
 
     # ---------------------------------------------------------------------
     # 第 1 步：训练并保存快照
@@ -123,5 +123,5 @@ done
 # 第 3 步：汇总并打包
 # -----------------------------------------------------------------------------
 echo "==> 汇总"
-$PYTHON tools/diag_collect.py --results "$RESULT_DIR" --process "runs/process/$TRAIN_ROOT"
+$PYTHON tools/diag_collect.py --results "$RESULT_DIR" --process "runs/$TRAIN_ROOT"
 echo "==> 完成，下载 ${RESULT_DIR}.zip 发给我即可"

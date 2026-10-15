@@ -135,9 +135,9 @@ if __name__ == "__main__":
 
     filename = os.path.basename(sys.argv[0])[:-3] + "_" + datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
     if args.name == None:
-        Project(project_name=filename, root_name="runs/process")    
+        Project(project_name=filename, root_name="runs")    
     else:
-        Project(project_name=args.name, root_name="runs/process")
+        Project(project_name=args.name, root_name="runs")
     args_str = json.dumps(vars(args), ensure_ascii=False, indent=2)
     Project.log(args_str, filename=f"argsInfo.txt", is_print = False)
     Project.log(sys.argv[0])

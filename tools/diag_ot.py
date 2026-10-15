@@ -7,7 +7,7 @@
   C. 理论缺口：Cm 下的精确最优代价 vs Cv 方案（训练实际用的 gamma1）在 Cm 下的代价
 
 用法（在项目根目录下）：
-  python tools/diag_ot.py --snapshot runs/process/Diag/Ar2Cl/snapshot_p000.pt --out runs/diag_results/Ar2Cl/p000
+  python tools/diag_ot.py --snapshot runs/Diag/Ar2Cl/snapshot_p000.pt --out runs/diag_results/Ar2Cl/p000
 
 输出（--out 目录下）：
   batches.csv    每批一行，A 和 C 的逐批指标
@@ -15,7 +15,7 @@
   summary.json   汇总统计（均值 / 中位数 / P90）和三个判据的结论
 """
 import os as _os, sys as _sys
-# 本脚本在 tools/ 下：把项目根目录加入 import 路径（utils / model），并切换到根目录（代码用相对路径读 dataset/、runs/process/）
+# 本脚本在 tools/ 下：把项目根目录加入 import 路径（utils / model），并切换到根目录（代码用相对路径读 dataset/、runs/）
 _ROOT = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
 _sys.path.insert(0, _ROOT)
 _os.chdir(_ROOT)

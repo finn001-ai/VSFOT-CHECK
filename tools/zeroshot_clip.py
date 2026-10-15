@@ -14,7 +14,7 @@ CLIP 零样本准确率测试（不训练）
 输出：屏幕打印结果表，并保存到 runs/zeroshot_results/<日期>/result.md、result.json
 """
 import os as _os, sys as _sys
-# 本脚本在 tools/ 下：把项目根目录加入 import 路径（utils / model），并切换到根目录（代码用相对路径读 dataset/、runs/process/）
+# 本脚本在 tools/ 下：把项目根目录加入 import 路径（utils / model），并切换到根目录（代码用相对路径读 dataset/、runs/）
 _ROOT = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
 _sys.path.insert(0, _ROOT)
 _os.chdir(_ROOT)

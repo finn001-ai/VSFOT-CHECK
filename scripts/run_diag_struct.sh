@@ -2,7 +2,7 @@
 # =============================================================================
 # 目标域结构诊断：用学生模型特征空间的结构（近邻 / 原型 / gamma2）修正 CLIP 伪标签，能否超过 CLIP
 #
-# 不训练，直接使用 scripts/run_diag.sh 已保存的快照（runs/process/DiagFix/<任务>/snapshot_*.pt）
+# 不训练，直接使用 scripts/run_diag.sh 已保存的快照（runs/DiagFix/<任务>/snapshot_*.pt）
 #
 # 在 Jupyter 里运行（项目根目录下）：
 #   !bash scripts/run_diag_struct.sh
@@ -37,7 +37,7 @@ mkdir -p "$RESULT_DIR"
 
 for task in "${TASKS[@]}"; do
     for stage in "${STAGES[@]}"; do
-        snap="runs/process/$TRAIN_ROOT/$task/snapshot_${stage}.pt"
+        snap="runs/$TRAIN_ROOT/$task/snapshot_${stage}.pt"
         out="$RESULT_DIR/$task/$stage"
         if [ ! -f "$snap" ]; then
             echo "[错误] 找不到快照 ${snap}，请先运行 bash scripts/run_diag.sh"; exit 1

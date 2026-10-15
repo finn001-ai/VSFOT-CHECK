@@ -27,11 +27,11 @@
 以及 headroom 恢复比例 = (acc_变体 − acc_bank) / (acc_true_batch − acc_bank)（用全部批的均值计算）
 
 用法（在项目根目录下）：
-  python tools/diag_mu.py --snapshot runs/process/DiagFix/Ar2Cl/snapshot_p000.pt --out runs/diag_mu_results/Ar2Cl/p000
+  python tools/diag_mu.py --snapshot runs/DiagFix/Ar2Cl/snapshot_p000.pt --out runs/diag_mu_results/Ar2Cl/p000
   python tools/diag_mu.py --collect runs/diag_mu_results        # 汇总所有结果并打包 zip
 """
 import os as _os, sys as _sys
-# 本脚本在 tools/ 下：把项目根目录加入 import 路径（utils / model），并切换到根目录（代码用相对路径读 dataset/、runs/process/）
+# 本脚本在 tools/ 下：把项目根目录加入 import 路径（utils / model），并切换到根目录（代码用相对路径读 dataset/、runs/）
 _ROOT = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
 _sys.path.insert(0, _ROOT)
 _os.chdir(_ROOT)

@@ -11,11 +11,11 @@
   [H3 修正] 分母改用 gamma1 实际的行 / 列边际求精确最优，使分子分母在同一可行集里比较
 
 用法（在项目根目录下）：
-  python tools/diag_quick.py --snapshot runs/process/Diag/Ar2Cl/snapshot_p000.pt --out runs/diag_quick_results/Ar2Cl/p000
+  python tools/diag_quick.py --snapshot runs/Diag/Ar2Cl/snapshot_p000.pt --out runs/diag_quick_results/Ar2Cl/p000
   python tools/diag_quick.py --collect runs/diag_quick_results        # 汇总所有结果并打包 zip
 """
 import os as _os, sys as _sys
-# 本脚本在 tools/ 下：把项目根目录加入 import 路径（utils / model），并切换到根目录（代码用相对路径读 dataset/、runs/process/）
+# 本脚本在 tools/ 下：把项目根目录加入 import 路径（utils / model），并切换到根目录（代码用相对路径读 dataset/、runs/）
 _ROOT = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
 _sys.path.insert(0, _ROOT)
 _os.chdir(_ROOT)

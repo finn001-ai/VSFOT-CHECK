@@ -2,7 +2,7 @@
 # =============================================================================
 # 全数据集 OT 诊断：全域类边际能否绕开「批内分布与全域不一致」
 #
-# 不训练，直接使用 scripts/run_diag.sh 已保存的快照（runs/process/DiagFix/<任务>/snapshot_*.pt）
+# 不训练，直接使用 scripts/run_diag.sh 已保存的快照（runs/DiagFix/<任务>/snapshot_*.pt）
 #
 # 在 Jupyter 里运行（项目根目录下）：
 #   !bash scripts/run_diag_global.sh
@@ -38,7 +38,7 @@ mkdir -p "$RESULT_DIR"
 
 for task in "${TASKS[@]}"; do
     for stage in "${STAGES[@]}"; do
-        snap="runs/process/$TRAIN_ROOT/$task/snapshot_${stage}.pt"
+        snap="runs/$TRAIN_ROOT/$task/snapshot_${stage}.pt"
         out="$RESULT_DIR/$task/$stage"
         if [ ! -f "$snap" ]; then
             echo "[错误] 找不到快照 ${snap}，请先运行 bash scripts/run_diag.sh"; exit 1

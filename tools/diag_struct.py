@@ -23,7 +23,7 @@ CLIP 图像特征 g（只作参考，用来对比「学生的结构」和「CLIP
 每个变体报告：准确率、相对 CLIP 的差值、相对模型的差值、相对 CLIP 纠正 / 改坏的样本数。
 
 用法（在项目根目录下）：
-  python tools/diag_struct.py --snapshot runs/process/DiagFix/Ar2Cl/snapshot_p000.pt --out runs/diag_struct_results/Ar2Cl/p000
+  python tools/diag_struct.py --snapshot runs/DiagFix/Ar2Cl/snapshot_p000.pt --out runs/diag_struct_results/Ar2Cl/p000
   python tools/diag_struct.py --collect runs/diag_struct_results        # 汇总所有结果并打包 zip
 """
 import os as _os, sys as _sys
