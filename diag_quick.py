@@ -78,7 +78,7 @@ def run(cli):
     sim_all = torch.zeros(N, C, device=device)
     labels_all = torch.zeros(N, dtype=torch.long, device=device)
     with torch.no_grad():
-        text = clip.tokenize([f"a photo of a {c}" for c in A.class_info]).to(device)
+        text = clip.tokenize([f"a photo of a {c.replace('_', ' ')}" for c in A.class_info]).to(device)
         text_feat = clip_model.encode_text(text)
         text_feat = text_feat / text_feat.norm(dim=-1, keepdim=True)
         for item in tqdm(DataLoader(dataset, batch_size=128, num_workers=cli.num_workers), desc="CLIP 相似度"):
@@ -126,7 +126,7 @@ def run(cli):
                     # true_batch 在缺席类上为 0，Sinkhorn 需要正的边际，加极小值后重新归一化
                     mu = mus[name].clamp_min(1e-8)
                     mu = mu / mu.sum()
-                    g, _ = run_sinkhorn(getGamma, A, clip_prob.T, mu, A.otReg)   # [C, B]
+                    g, _ = run_sinkhorn(getGamma, A, clip_prob.T, mu, A.otReg, model_prob.T)   # [C, B]
                     if name == "bank":
                         g_bank = g
                     if torch.isnan(g).any() or g.sum() <= 0:

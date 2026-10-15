@@ -1,15 +1,19 @@
 #!/usr/bin/env bash
 # =============================================================================
-# 按论文附录（CVPR 2026 supplemental，第 4 节）的配置复现 VSFOT
+# 按论文（CVPR 2026 正文 + 附录）复现 VSFOT
 #
-# 和原代码默认值的区别（原代码默认值保持不变，这里通过参数传入）：
-#   模型 SGD        momentum 0.9、weight decay 5e-4   （原代码：纯 SGD）
-#   CLIP adapter    Adam weight decay 1e-4            （原代码：无）
-#   adapter 维度    64                                 （原代码：256）
-#   Office-Home     20 epoch                           （README 命令：40）
-# 和论文一致、无需改动的：CLIP ViT-B/32、批大小 64、ε = 0.2、最后 3 层 adapter
+# 代码已按论文修改（main.py / utils/otUse.py）：
+#   提示词      类名下划线换成空格：a photo of a Alarm Clock
+#   式 3        Cv = α·(1 − q^v) + L(q^m, y_j)，第二项用模型预测（原代码用 CLIP 概率）
+#   式 6        μ_p = 本批 VLM 预测均值（原代码用记忆库均值）
+#   式 2        去掉 gamma1 的 1/类频率 重加权（论文没有）
+#   式 13       去掉对齐损失权重 min(1, progress×2) 的爬升（论文没有）
+#   式 10、11   只在保留的 top-k 类上做 softmax（原代码 ×10 后对全部类 softmax）
+# 训练配置按附录第 4 节（这里通过参数传入）：
+#   模型 SGD momentum 0.9、wd 5e-4；adapter Adam wd 1e-4；adapter 隐藏维度 64；Office-Home 20 epoch
+# 与论文一致、无需改动：CLIP ViT-B/32、批大小 64、ε = 0.2、最后 3 层 adapter、top-k = 3
 #
-# 论文 Ar→Cl = 75.00（3 个种子平均）；原代码配置我们得到 67.2
+# 论文 Ar→Cl = 75.00（3 个种子平均）
 #
 # 在 Jupyter 里运行：
 #   !bash run_paper_cfg.sh
@@ -37,11 +41,12 @@ TASKS=(
 # 种子；先跑 1 个看效果，接近论文后再加 2 个（论文报 3 个种子的平均）
 SEEDS=(42)
 
-# 对齐方式，默认只跑原方法；之后可加 clip_soft clip_sharp 做消融
+# 对齐方式，默认只跑原方法
 MODES=(ot)
 
 # 训练输出到 process/<TRAIN_ROOT>/<模式>/<任务>_s<种子>/
-TRAIN_ROOT="PaperCfg"
+# 用新目录名，和上一次（未改公式的 process/PaperCfg/）分开，避免被当作已完成而跳过
+TRAIN_ROOT="PaperFormula"
 RESULT_DIR="paper_cfg_results/$(date +%Y_%m_%d)"
 
 # =============================================================================
@@ -78,7 +83,7 @@ for pair in "${TASKS[@]}"; do
             echo ""
             echo "################################################################"
             echo "==> 第 ${k}/${total} 组：${task}（${s} -> ${t}），模式 ${mode}，seed=${seed}"
-            echo "    论文配置：${EPOCHS} epoch ${PAPER_ARGS}"
+            echo "    论文公式 + 附录配置：${EPOCHS} epoch ${PAPER_ARGS}"
             echo "################################################################"
             # $PAPER_ARGS 不加引号，让它拆成多个参数
             $PYTHON main.py \

@@ -43,7 +43,9 @@ def start(args, target_dataloader, CLIP_model_raw):
     # 原代码无权重衰减；论文附录为 1e-4
     clip_optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, CLIP_model.parameters()), lr=5e-5, weight_decay=args.adam_wd)
 
-    class_prompt = [ f'a photo of a {item}' for item in args.class_info]
+    # 类名中的下划线换成空格，如 Alarm_Clock -> Alarm Clock（原代码直接用 a photo of a Alarm_Clock）
+    class_prompt = [ f'a photo of a {item.replace("_", " ")}' for item in args.class_info]
+    Project.log(f"Prompts (first 5): {class_prompt[:5]}")
     cls_text = clip.tokenize(class_prompt).to(args.device)
 
     MB = MemoryBank(target_dataloader["test"].dataset.__len__(), args.class_num, device=args.device)
@@ -111,7 +113,8 @@ def start(args, target_dataloader, CLIP_model_raw):
             clipProb = torch.softmax(100*clipSim, dim = 1)                          # [B, C]
 
             if args.align_mode == "ot":
-                gamma1 = getGamma(args, clipProb.T, vilMemoryMean, args.otReg)     # [C, B]
+                # 论文式 6：μ_p 为本批 VLM 预测的均值（原代码用记忆库均值）；式 3：Cv 第二项用模型预测
+                gamma1 = getGamma(args, clipProb.T, clipProb.mean(dim=0), args.otReg, modelProb=modelProb.T)     # [C, B]
             # 消融：不做 OT，直接用 CLIP 的标签当计划；每列质量 1/B，和 OT 计划的列边际一致，损失量级可比
             elif args.align_mode == "clip_soft":
                 gamma1 = clipProb.T / clipProb.size(0)                              # [C, B]
@@ -121,7 +124,7 @@ def start(args, target_dataloader, CLIP_model_raw):
             # ot - clip_sharp = 边际投影的作用；clip_sharp - clip_soft = 锐化的作用
             elif args.align_mode == "clip_sharp":
                 feat_dist = 1 - clipProb.T                                          # [C, B]
-                cost = feat_dist / feat_dist.max() - torch.log(clipProb.T + 1e-6)   # 同 getGamma 的 cost_matrix
+                cost = feat_dist / feat_dist.max() - torch.log(modelProb.T + 1e-6)  # 同 getGamma 的 cost_matrix（式 3）
                 gamma1 = torch.softmax(-cost / args.otReg, dim=0) / clipProb.size(0)   # 每列 ∝ exp(-cost/ε)，质量 1/B
 
         ################################################
@@ -130,21 +133,15 @@ def start(args, target_dataloader, CLIP_model_raw):
         modelProbGrad = torch.softmax(modelLogitsGradW, dim=1)
         gamma2, cost_matrix = getGamma_self(args, modelProbGrad, modelFeatGradW, modelMemoryMean, classifier_net, reg=args.otReg)
 
-        with torch.no_grad():
-            total_cls = MB.model_bank.mean(dim=0)
-            cls_freq = torch.clamp(total_cls, min=1e-4)
-            class_weights = 1.0 / cls_freq
-        gamma1 = gamma1 * class_weights.unsqueeze(1)
+        # 论文式 2：L_Align = Σ Γ*·Cm（原代码在此先把 gamma1 乘以 1/类频率，论文中没有）
         loss_align = torch.sum(gamma1 * cost_matrix)
 
         loss_ctr = fastSimsiam(strong_img, strong2_img, SSNB)
 
         loss_iml = IML(modelProbGrad)
 
-        progress = iter_num / max_iter
-        weight_align = min(1.0, progress * 2)  # [1 -> 2]
-
-        loss1 = args.weightalign * weight_align * loss_align + \
+        # 论文式 13：L1 = L_Align + L_Con + L_IM（原代码对齐损失权重为 min(1, progress×2)，论文中没有）
+        loss1 = args.weightalign * loss_align + \
                 args.weightctr * loss_ctr + \
                 args.weightiml * loss_iml
 
@@ -162,11 +159,11 @@ def start(args, target_dataloader, CLIP_model_raw):
 
         logits_clip = (100.0 * clipFeatWGrad @ clipTextFeatGrad.T)
 
+        # 论文式 10、11：保留 top-k 类，在保留的类上做 softmax 得到 q̃^m，其余类为 0
+        # （原代码：归一化后 ×10，再对全部类做 softmax）
         top3_probs, top3_indices = torch.topk(modelProb, k=args.topk, dim=1)
         soft_labels = torch.zeros_like(logits_clip)
-        soft_labels.scatter_(1, top3_indices, top3_probs)
-        soft_labels = soft_labels / (soft_labels.sum(dim=1, keepdim=True) + 1e-6)
-        soft_labels = torch.softmax(soft_labels * 10, dim=1)
+        soft_labels.scatter_(1, top3_indices, torch.softmax(top3_probs, dim=1))
 
         probs_vil = torch.softmax(logits_clip, dim=1)
         log_vil = torch.log(probs_vil + 1e-6)

@@ -173,7 +173,7 @@ def main():
     sim_all = torch.zeros(N, C, device=device)
     labels_all = torch.zeros(N, dtype=torch.long, device=device)
     with torch.no_grad():
-        text = clip.tokenize([f"a photo of a {c}" for c in A.class_info]).to(device)
+        text = clip.tokenize([f"a photo of a {c.replace('_', ' ')}" for c in A.class_info]).to(device)
         text_feat = clip_model.encode_text(text)
         text_feat = text_feat / text_feat.norm(dim=-1, keepdim=True)
         loader = DataLoader(dataset, batch_size=128, shuffle=False, num_workers=cli.num_workers)
@@ -222,7 +222,7 @@ def main():
                 gammas = {}
                 for mu_name, mu_arg, mu_vec in [("uniform", None, torch.full((C,), 1.0 / C, device=device)),
                                                 ("bank", mu_bank, mu_bank)]:
-                    g, nc = run_sinkhorn(getGamma, A, clip_prob.T, mu_arg, A.otReg)
+                    g, nc = run_sinkhorn(getGamma, A, clip_prob.T, mu_arg, A.otReg, model_prob.T)
                     gammas[mu_name] = g
                     re, ce = marginal_err(g, mu_vec, B)
                     row[f"{mu_name}_row_err"] = re
@@ -265,7 +265,7 @@ def main():
                     mu_joint = torch.softmax(s * sim_all[idx], dim=1).mean(dim=0)
                     for mode, mu_vec in [("joint", mu_joint), ("prob_only", mu_bank)]:
                         for eps in cli.regs:
-                            g, nc = run_sinkhorn(getGamma, A, cp.T, mu_vec, eps)
+                            g, nc = run_sinkhorn(getGamma, A, cp.T, mu_vec, eps, model_prob.T)
                             st = plan_stats(g, y, absent)
                             re, _ = marginal_err(g, mu_vec, B)
                             grid_rows.append({"seed": seed, "batch": bi, "mode": mode, "scale": s, "eps": eps,
