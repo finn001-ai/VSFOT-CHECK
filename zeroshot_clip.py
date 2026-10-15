@@ -50,17 +50,32 @@ class ListDataset(Dataset):
         return self.preprocess(RGB_loader(path)), label
 
 
-def class_names_from_list(domain):
-    """从图片列表的路径里取类名（即类文件夹名，和 main.py 的 class_info 相同），按标签编号排序"""
-    names = {}
+# 和 main.py 中 OfficeHomeDataset 的 args.class_info 完全相同（标签编号即列表下标）
+# 注意：不能从图片列表的路径里解析类名 —— 云端 *_list.txt 的路径格式和项目自带的 txt 不同
+CLASS_NAMES = ['Alarm_Clock', 'Backpack', 'Batteries', 'Bed', 'Bike', 'Bottle', 'Bucket', 'Calculator', 'Calendar', 'Candles', 'Chair', 'Clipboards', 'Computer', 'Couch', 'Curtains', 'Desk_Lamp', 'Drill', 'Eraser', 'Exit_Sign', 'Fan', 'File_Cabinet', 'Flipflops', 'Flowers', 'Folder', 'Fork', 'Glasses', 'Hammer', 'Helmet', 'Kettle', 'Keyboard', 'Knives', 'Lamp_Shade', 'Laptop', 'Marker', 'Monitor', 'Mop', 'Mouse', 'Mug', 'Notebook', 'Oven', 'Pan', 'Paper_Clip', 'Pen', 'Pencil', 'Postit_Notes', 'Printer', 'Push_Pin', 'Radio', 'Refrigerator', 'Ruler', 'Scissors', 'Screwdriver', 'Shelf', 'Sink', 'Sneakers', 'Soda', 'Speaker', 'Spoon', 'Table', 'Telephone', 'ToothBrush', 'Toys', 'Trash_Can', 'TV', 'Webcam']
+
+
+def check_label_names(domain):
+    """
+    核对图片列表中「标签编号 -> 类文件夹名」是否和 CLASS_NAMES 一致。
+    类名取路径的倒数第二段（图片所在文件夹），不受路径是否带前缀 / 绝对路径影响。
+    不一致时，提示词会配错类别，CLIP 准确率被压低但不会报错，所以必须检查。
+    """
+    seen = {}
     with open(os.path.join("dataset", "OfficeHomeDataset", f"{domain}.txt"), encoding="utf-8") as f:
+        first = None
         for line in f:
             if line.strip():
                 rel, label = line.split()[0], int(line.split()[1])
-                name = rel.split("/")[0]
-                assert names.setdefault(label, name) == name, f"标签 {label} 对应多个类名"
-    assert sorted(names) == list(range(len(names))), "标签编号不连续"
-    return [names[i] for i in range(len(names))]
+                first = first or rel
+                parts = rel.replace("\\", "/").split("/")
+                seen.setdefault(label, set()).add(parts[-2] if len(parts) >= 2 else "?")
+    bad = [(k, sorted(v), CLASS_NAMES[k] if k < len(CLASS_NAMES) else None)
+           for k, v in sorted(seen.items()) if v != {CLASS_NAMES[k] if k < len(CLASS_NAMES) else None}]
+    print(f"[{domain}] 列表第一行路径: {first}  标签数: {len(seen)}  与 CLASS_NAMES 不一致: {len(bad)}")
+    for k, v, want in bad[:10]:
+        print(f"    标签 {k}: 列表中的文件夹 {v}，CLASS_NAMES 为 {want}")
+    return len(bad)
 
 
 def main():
@@ -76,15 +91,17 @@ def main():
     model, preprocess = clip.load(a.clip, device=device)
     model.float().eval()     # 和训练代码一致：clipAdapter 会把 CLIP 转成 float32
 
-    class_names = class_names_from_list(DOMAINS[0])
-    for d in DOMAINS[1:]:
-        assert class_names_from_list(d) == class_names, f"{d} 的类名顺序和 {DOMAINS[0]} 不一致"
+    class_names = CLASS_NAMES
+    n_bad = sum(check_label_names(d) for d in DOMAINS)
+    print(f"==> 标签与类名核对：共 {n_bad} 处不一致" + ("（提示词会配错类别！）" if n_bad else "（一致）"))
     variants = {
         "underscore": [TEMPLATE.format(c) for c in class_names],
         "space": [TEMPLATE.format(c.replace("_", " ")) for c in class_names],
     }
     for k, v in variants.items():
-        print(f"[{k}] 示例提示词: {v[:3]}")
+        # 提示词必须各不相同且包含类名，否则 CLIP 无法区分类别
+        assert len(set(v)) == len(v) and all(p != TEMPLATE.format("") for p in v), f"[{k}] 提示词有空的或重复的"
+        print(f"[{k}] 示例提示词: {v[:3]} ... {v[-2:]}")
 
     with torch.no_grad():
         text_feats = {}
