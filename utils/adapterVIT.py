@@ -47,10 +47,10 @@ def insertLayer(clip_model, adapterCount, bottleneck_dim):
 
 
 
-def clipAdapter(rawClip, device, adapterCount = 1, bottleneck_dim = 256):
+def clipAdapter(rawClip, device, adapterCount = 1):
     rawClip.float()
     adapterClip = copy.deepcopy(rawClip)
-    adapterClip = insertLayer(adapterClip, adapterCount, bottleneck_dim=bottleneck_dim)
+    adapterClip = insertLayer(adapterClip, adapterCount, bottleneck_dim=256)
     adapterClip.to(device).train().float()
     for name, param in adapterClip.named_parameters():
         if "adapter" not in name:

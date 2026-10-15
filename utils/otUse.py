@@ -1,13 +1,10 @@
 import ot
 import torch
 
-def getGamma(args, clipProb, clipStatistic, reg = 0.2, modelProb = None):
-    # 论文式 3：Cv = α·(1 − q^v) + L(q^m, y_j)
-    #   第一项用 VLM 概率 q^v（clipProb），第二项是模型预测 q^m 对类 j 的交叉熵 −log q^m_j
-    #   原代码第二项用的是 −log(clipProb)，与论文不符
-    assert modelProb is not None, "getGamma 需要传入模型预测 modelProb（[C, B]），见论文式 3"
-    log_T_prob = torch.log(modelProb + 1e-6)                # [C, B]  log q^m
-    cls_dist = -log_T_prob                                  # [C, B]  −log q^m
+def getGamma(args, clipProb, clipStatistic, reg = 0.2):
+    log_T_prob = torch.log(clipProb + 1e-6)                 # [C, B]
+    identity = torch.eye(clipProb.size(1)).to(args.device)  # [B, B]
+    cls_dist = -torch.matmul(log_T_prob, identity)          # [C, B] 
     feat_dist = 1 - clipProb            # [C, B]
     alpha = 1.0 / feat_dist.max()
     lambda_t = 1.0
