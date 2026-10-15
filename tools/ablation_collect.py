@@ -119,15 +119,17 @@ def main():
     for task in tasks:
         modes = [m for m in ORDER if (task, m) in group] + sorted(m for t, m in group if t == task and m not in ORDER)
         md += [f"## {task}", "",
-               "| 模式 | 种子 | 最后 5 次评估均值 | 最终准确率 | 最佳准确率 | 平均耗时（分钟） | 全部跑完 |",
-               "|---|---|---|---|---|---|---|"]
+               "| 模式 | 种子 | 最后 5 次评估均值 | 相对 ot（百分点） | 最终准确率 | 最佳准确率 | 平均耗时（分钟） | 全部跑完 |",
+               "|---|---|---|---|---|---|---|---|"]
+        ot_l5 = mean_std([r["last5"] for r in group.get((task, "ot"), [])])[0]
         for m in modes:
             rs = group[(task, m)]
             l5 = mean_std([r["last5"] for r in rs])
             last5_mean[(task, m)] = l5[0]
+            vs_ot = f"{(l5[0] - ot_l5) * 100:+.2f}" if (l5[0] is not None and ot_l5 is not None and m != "ot") else "-"
             el = mean_std([r["elapsed"] for r in rs])[0]
             seeds = ",".join(str(r["seed"]) for r in rs)
-            md.append(f"| {m} | {seeds} | {fmt_pct(*l5)} | {fmt_pct(*mean_std([r['final'] for r in rs]))} | "
+            md.append(f"| {m} | {seeds} | {fmt_pct(*l5)} | {vs_ot} | {fmt_pct(*mean_std([r['final'] for r in rs]))} | "
                       f"{fmt_pct(*mean_std([r['best'] for r in rs]))} | {fmt_min(el)} | {'是' if all(r['done'] for r in rs) else '否'} |")
         # 训练曲线：多个种子时取各评估点的均值；每 5 次评估取一个点
         md += ["", "训练曲线（iter: acc，多个种子取均值）：", ""]

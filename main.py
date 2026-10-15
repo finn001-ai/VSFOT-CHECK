@@ -17,9 +17,37 @@ from model.simsiam import SimSiam, fastSimsiam
 import datetime
 import json
 from tqdm import tqdm
+import torch.nn.functional as F
+import random
+import numpy as np
 
 
 IMAGEFILE = "dataset"    # 相对项目根目录；图片通过软链接放在 dataset/<数据集>/<域>/ 下
+
+def init_feat_bank(feature_net, loader, device):
+    """学生特征库：目标域每张图的学生特征（L2 归一化），用测试变换做一遍前向初始化"""
+    # 遍历 DataLoader 会消耗随机数，先保存再恢复，保证之后的训练随机序列和不开 --knn_k 时完全一致
+    rng_state = (random.getstate(), np.random.get_state(), torch.get_rng_state(), torch.cuda.get_rng_state_all())
+    feature_net.eval()
+    bank = None
+    with torch.no_grad():
+        for item in tqdm(loader, desc="init feat bank"):
+            feat = F.normalize(feature_net(item["img"].to(device).float()), dim=1)
+            if bank is None:
+                bank = torch.zeros(len(loader.dataset), feat.shape[1], device=device)
+            bank[item["index"].to(device)] = feat
+    random.setstate(rng_state[0]); np.random.set_state(rng_state[1])
+    torch.set_rng_state(rng_state[2]); torch.cuda.set_rng_state_all(rng_state[3])
+    return bank
+
+
+def knn_smooth(feat, index, feat_bank, prob_bank, own_prob, k):
+    """(自身概率 + 学生特征空间中 k 个近邻在 prob_bank 中的概率平均) / 2，近邻不含自身"""
+    sim = F.normalize(feat, dim=1) @ feat_bank.T                          # [B, N]
+    sim[torch.arange(len(index), device=sim.device), index] = -2.0        # 排除自身
+    neighbors = sim.topk(k, dim=1).indices                                # [B, k]
+    return (own_prob + prob_bank[neighbors].mean(dim=1)) / 2
+
 
 def start(args, target_dataloader, CLIP_model_raw):
     network = torch.load(os.path.join("runs", args.sourceStorage, f"Source_{args.source.lower()}", "Source.pt"), weights_only=False)
@@ -49,6 +77,8 @@ def start(args, target_dataloader, CLIP_model_raw):
     with torch.no_grad():
         cls_text_features = CLIP_model_raw.encode_text(cls_text)
         MB.initialize(target_dataloader["test"], CLIP_model_raw, feature_net, classifier_net, cls_text_features, args.device)
+    # --knn_k > 0：在学生特征空间里用近邻平滑伪标签（静态诊断见 archive/2026_10_16_diag_struct）
+    feat_bank = init_feat_bank(feature_net, target_dataloader["test"], args.device) if args.knn_k > 0 else None
     SSNB = SimSiam(feature_net).to(args.device)
 
     model_cm, model_oa, model_aa, model_class_acc = modeleval(args, feature_net, classifier_net, target_dataloader["test"])
@@ -113,20 +143,22 @@ def start(args, target_dataloader, CLIP_model_raw):
             vilTextFeat = vilTextFeat / vilTextFeat.norm(dim=-1, keepdim=True)      # [B, FC]
             clipSim = vilImgFeat @ vilTextFeat.T                                    # [B, C]
             clipProb = torch.softmax(100*clipSim, dim = 1)                          # [B, C]
+            # 对齐损失用的 CLIP 概率：开启 --knn_k 时换成学生特征空间近邻平滑后的版本（记忆库仍存原始 clipProb）
+            alignProb = knn_smooth(modelFeat, index_img, feat_bank, MB.vil_bank, clipProb, args.knn_k) if args.knn_k > 0 else clipProb
 
             if args.align_mode == "ot":
-                gamma1 = getGamma(args, clipProb.T, vilMemoryMean, args.otReg)     # [C, B]
+                gamma1 = getGamma(args, alignProb.T, vilMemoryMean, args.otReg)     # [C, B]
             # 消融：不做 OT，直接用 CLIP 的标签当计划；每列质量 1/B，和 OT 计划的列边际一致，损失量级可比
             elif args.align_mode == "clip_soft":
-                gamma1 = clipProb.T / clipProb.size(0)                              # [C, B]
+                gamma1 = alignProb.T / alignProb.size(0)                              # [C, B]
             elif args.align_mode == "clip_hard":
-                gamma1 = torch.nn.functional.one_hot(clipProb.argmax(dim=1), args.class_num).float().T / clipProb.size(0)
+                gamma1 = torch.nn.functional.one_hot(alignProb.argmax(dim=1), args.class_num).float().T / alignProb.size(0)
             # 消融：和 OT 用同一个代价 / 核（同 getGamma），只做列归一化，不做 Sinkhorn 的类别边际投影
             # ot - clip_sharp = 边际投影的作用；clip_sharp - clip_soft = 锐化的作用
             elif args.align_mode == "clip_sharp":
-                feat_dist = 1 - clipProb.T                                          # [C, B]
-                cost = feat_dist / feat_dist.max() - torch.log(clipProb.T + 1e-6)   # 同 getGamma 的 cost_matrix
-                gamma1 = torch.softmax(-cost / args.otReg, dim=0) / clipProb.size(0)   # 每列 ∝ exp(-cost/ε)，质量 1/B
+                feat_dist = 1 - alignProb.T                                          # [C, B]
+                cost = feat_dist / feat_dist.max() - torch.log(alignProb.T + 1e-6)   # 同 getGamma 的 cost_matrix
+                gamma1 = torch.softmax(-cost / args.otReg, dim=0) / alignProb.size(0)   # 每列 ∝ exp(-cost/ε)，质量 1/B
 
         ################################################
         modelFeatGradW = feature_net(weak_img)
@@ -166,7 +198,9 @@ def start(args, target_dataloader, CLIP_model_raw):
 
         logits_clip = (100.0 * clipFeatWGrad @ clipTextFeatGrad.T)
 
-        top3_probs, top3_indices = torch.topk(modelProb, k=args.topk, dim=1)
+        # --knn_mgva：老师（CLIP adapter）学的目标换成学生特征空间近邻平滑后的学生概率
+        mgvaProb = knn_smooth(modelFeat, index_img, feat_bank, MB.model_bank, modelProb, args.knn_k) if args.knn_mgva else modelProb
+        top3_probs, top3_indices = torch.topk(mgvaProb, k=args.topk, dim=1)
         soft_labels = torch.zeros_like(logits_clip)
         soft_labels.scatter_(1, top3_indices, top3_probs)
         soft_labels = soft_labels / (soft_labels.sum(dim=1, keepdim=True) + 1e-6)
@@ -186,6 +220,8 @@ def start(args, target_dataloader, CLIP_model_raw):
         ################################################
         model_LR.step()
         MB.update(index_img, vil_prob=clipProb, model_prob=modelProb)
+        if feat_bank is not None:
+            feat_bank[index_img] = F.normalize(modelFeat, dim=1)
 
         ################################################
         log_str = f'Task: SFDA, Test Target, {args.source} -> {args.target}, Iter: {iter_num:4d}/{max_iter:4d}; Align: {loss_align.item():.4f}; CTR: {loss_ctr.item():.4f}; IML: {loss_iml.item():.4f}; VLM: {loss_vil.item():.4f};'
@@ -241,8 +277,13 @@ if __name__ == "__main__":
     parser.add_argument("--align_mode", default="ot", type=str, choices=["ot", "clip_soft", "clip_hard", "clip_sharp"],
                         help="对齐损失用的计划：ot = 原方法；clip_soft / clip_hard = 消融，直接用 CLIP 软 / 硬标签；"
                              "clip_sharp = 消融，和 OT 同一个核但不做类别边际投影")
+    parser.add_argument("--knn_k", default=0, type=int,
+                        help="> 0 时，对齐损失用的 CLIP 概率换成学生特征空间 k 近邻平滑后的版本：(自身 + 近邻平均) / 2；0 = 关闭（原方法）")
+    parser.add_argument("--knn_mgva", action="store_true",
+                        help="MGVA 中老师学的学生概率也做同样的近邻平滑（需要 --knn_k > 0）")
 
     args = parser.parse_args()
+    assert not args.knn_mgva or args.knn_k > 0, "--knn_mgva 需要 --knn_k > 0"
 
     seed_everything(args.seed)
 
