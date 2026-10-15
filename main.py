@@ -43,8 +43,11 @@ def start(args, target_dataloader, CLIP_model_raw):
     # 原代码无权重衰减；论文附录为 1e-4
     clip_optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, CLIP_model.parameters()), lr=5e-5, weight_decay=args.adam_wd)
 
-    # 类名中的下划线换成空格，如 Alarm_Clock -> Alarm Clock（原代码直接用 a photo of a Alarm_Clock）
-    class_prompt = [ f'a photo of a {item.replace("_", " ")}' for item in args.class_info]
+    # --formula paper：类名中的下划线换成空格（Alarm Clock）；code：原代码写法（Alarm_Clock）
+    if args.formula == "paper":
+        class_prompt = [ f'a photo of a {item.replace("_", " ")}' for item in args.class_info]
+    else:
+        class_prompt = [ f'a photo of a {item}' for item in args.class_info]
     Project.log(f"Prompts (first 5): {class_prompt[:5]}")
     cls_text = clip.tokenize(class_prompt).to(args.device)
 
@@ -112,9 +115,12 @@ def start(args, target_dataloader, CLIP_model_raw):
             clipSim = vilImgFeat @ vilTextFeat.T                                    # [B, C]
             clipProb = torch.softmax(100*clipSim, dim = 1)                          # [B, C]
 
+            # Cv 第二项（交叉熵）所用的概率：paper = 模型预测（论文式 3）；code = CLIP 概率（原代码）
+            ceProb = modelProb if args.formula == "paper" else clipProb
             if args.align_mode == "ot":
-                # 论文式 6：μ_p 为本批 VLM 预测的均值（原代码用记忆库均值）；式 3：Cv 第二项用模型预测
-                gamma1 = getGamma(args, clipProb.T, clipProb.mean(dim=0), args.otReg, modelProb=modelProb.T)     # [C, B]
+                # μ_p：paper = 本批 VLM 预测均值（论文式 6）；code = 记忆库均值（原代码）
+                mu_p = clipProb.mean(dim=0) if args.formula == "paper" else vilMemoryMean
+                gamma1 = getGamma(args, clipProb.T, mu_p, args.otReg, modelProb=ceProb.T)     # [C, B]
             # 消融：不做 OT，直接用 CLIP 的标签当计划；每列质量 1/B，和 OT 计划的列边际一致，损失量级可比
             elif args.align_mode == "clip_soft":
                 gamma1 = clipProb.T / clipProb.size(0)                              # [C, B]
@@ -124,7 +130,7 @@ def start(args, target_dataloader, CLIP_model_raw):
             # ot - clip_sharp = 边际投影的作用；clip_sharp - clip_soft = 锐化的作用
             elif args.align_mode == "clip_sharp":
                 feat_dist = 1 - clipProb.T                                          # [C, B]
-                cost = feat_dist / feat_dist.max() - torch.log(modelProb.T + 1e-6)  # 同 getGamma 的 cost_matrix（式 3）
+                cost = feat_dist / feat_dist.max() - torch.log(ceProb.T + 1e-6)     # 同 getGamma 的 cost_matrix
                 gamma1 = torch.softmax(-cost / args.otReg, dim=0) / clipProb.size(0)   # 每列 ∝ exp(-cost/ε)，质量 1/B
 
         ################################################
@@ -133,15 +139,20 @@ def start(args, target_dataloader, CLIP_model_raw):
         modelProbGrad = torch.softmax(modelLogitsGradW, dim=1)
         gamma2, cost_matrix = getGamma_self(args, modelProbGrad, modelFeatGradW, modelMemoryMean, classifier_net, reg=args.otReg)
 
-        # 论文式 2：L_Align = Σ Γ*·Cm（原代码在此先把 gamma1 乘以 1/类频率，论文中没有）
+        # 论文式 2：L_Align = Σ Γ*·Cm；原代码（--formula code）先把 gamma1 乘以 1/类频率
+        if args.formula == "code":
+            with torch.no_grad():
+                class_weights = 1.0 / torch.clamp(MB.model_bank.mean(dim=0), min=1e-4)
+            gamma1 = gamma1 * class_weights.unsqueeze(1)
         loss_align = torch.sum(gamma1 * cost_matrix)
 
         loss_ctr = fastSimsiam(strong_img, strong2_img, SSNB)
 
         loss_iml = IML(modelProbGrad)
 
-        # 论文式 13：L1 = L_Align + L_Con + L_IM（原代码对齐损失权重为 min(1, progress×2)，论文中没有）
-        loss1 = args.weightalign * loss_align + \
+        # 论文式 13：各损失权重为 1；原代码（--formula code）对齐损失权重为 min(1, progress×2)
+        weight_align = min(1.0, iter_num / max_iter * 2) if args.formula == "code" else 1.0
+        loss1 = args.weightalign * weight_align * loss_align + \
                 args.weightctr * loss_ctr + \
                 args.weightiml * loss_iml
 
@@ -163,7 +174,12 @@ def start(args, target_dataloader, CLIP_model_raw):
         # （原代码：归一化后 ×10，再对全部类做 softmax）
         top3_probs, top3_indices = torch.topk(modelProb, k=args.topk, dim=1)
         soft_labels = torch.zeros_like(logits_clip)
-        soft_labels.scatter_(1, top3_indices, torch.softmax(top3_probs, dim=1))
+        if args.formula == "paper":
+            soft_labels.scatter_(1, top3_indices, torch.softmax(top3_probs, dim=1))
+        else:   # 原代码：归一化后 ×10，再对全部类做 softmax
+            soft_labels.scatter_(1, top3_indices, top3_probs)
+            soft_labels = soft_labels / (soft_labels.sum(dim=1, keepdim=True) + 1e-6)
+            soft_labels = torch.softmax(soft_labels * 10, dim=1)
 
         probs_vil = torch.softmax(logits_clip, dim=1)
         log_vil = torch.log(probs_vil + 1e-6)
@@ -218,6 +234,8 @@ if __name__ == "__main__":
     parser.add_argument('--wd', type=float, default=0.0, help="模型 SGD 权重衰减（论文 5e-4）")
     parser.add_argument('--adam_wd', type=float, default=0.0, help="CLIP adapter 的 Adam 权重衰减（论文 1e-4）")
     parser.add_argument('--adapter_dim', type=int, default=256, help="CLIP adapter 隐藏维度（论文 64）")
+    # paper：按论文正文公式（提示词去下划线、式 2/3/6/11/13）；code：原公开代码的写法（提交 e83d8b8 之前）
+    parser.add_argument('--formula', type=str, default="paper", choices=["paper", "code"])
 
     parser.add_argument('--otReg', type=float, default=0.2)
 
