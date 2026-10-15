@@ -1,19 +1,21 @@
 #!/usr/bin/env bash
 # =============================================================================
-# OT 消融：完整训练，对比对齐损失用的计划
-#   ot         原方法（Sinkhorn 计划）
-#   clip_soft  不做 OT，直接用 CLIP 软标签当计划
-#   clip_hard  不做 OT，直接用 CLIP argmax 的 one-hot 当计划
+# OT 消融：完整训练，对比对齐损失用的计划 gamma1
+#   ot          原方法（Sinkhorn 计划）
+#   clip_soft   不做 OT，直接用 CLIP 软标签
+#   clip_hard   不做 OT，直接用 CLIP argmax 的 one-hot
+#   clip_sharp  和 OT 同一个核（锐化），只做列归一化，不做类别边际投影
+#               ot - clip_sharp = 边际投影的作用；clip_sharp - clip_soft = 锐化的作用
 # 其余（类权重、SimSiam、IM 损失、CLIP 反向蒸馏、学习率等）完全不变
 #
 # 前提：源模型已训练好（process/Source_home/...）
 #
 # 在 Jupyter 里运行：
 #   !bash run_ablation.sh
-# 跑完下载 ablation_results/<日期>.zip
+# 跑完下载 ablation_results/<日期>.zip（汇总会包含之前已完成的所有组）
 #
-# 耗时参考：上次 Ar2Cl 跑一半约 15 分钟、Pr2Re 约 40 分钟，
-# 所以完整训练 2 个任务 × 3 种模式约 5～6 小时
+# 已完成的组（有 .done 标记）会自动跳过，所以可以放心重跑。
+# 耗时参考：目标域为 Clipart 的任务每组约 30 分钟，Pr2Re 每组约 85 分钟
 # =============================================================================
 
 set -euo pipefail
@@ -26,17 +28,15 @@ PYTHON="python -u"
 GPU=0
 EPOCHS=40
 
-# 要对比的模式；不想跑的在前面加 # 注释掉
-MODES=(
-    "ot"
-    "clip_soft"
-    "clip_hard"
-)
-
-# 任务，格式 "源域:目标域"
-TASKS=(
-    "art:clipart"
-    "product:realworld"
+# 任务和要跑的模式，格式 "源域:目标域:模式1,模式2,..."
+# 不想跑的行在前面加 # 注释掉；想加模式直接在逗号后追加
+RUNS=(
+    # 第 1 轮（2026-10-15 已完成）+ 第 2 轮补 clip_sharp
+    "art:clipart:ot,clip_soft,clip_hard,clip_sharp"
+    "product:realworld:ot,clip_soft,clip_hard"
+    # 第 2 轮：更多 CLIP 较弱的难任务（目标域 Clipart），验证「越难增益越大」
+    "product:clipart:ot,clip_soft,clip_sharp"
+    "realworld:clipart:ot,clip_soft,clip_sharp"
 )
 
 # 训练输出到 process/<TRAIN_ROOT>/<模式>/<任务>/
@@ -55,34 +55,50 @@ abbr() {
     esac
 }
 
-for pair in "${TASKS[@]}"; do
-    s="${pair%%:*}"
-    t="${pair##*:}"
+# 先展开成「源域 目标域 任务名 模式」的列表，并统计还需要训练几组
+todo=()
+n_done=0
+for run in "${RUNS[@]}"; do
+    IFS=":" read -r s t modes <<< "$run"
     task="$(abbr "$s")2$(abbr "$t")"
-    for mode in "${MODES[@]}"; do
-        dir="process/$TRAIN_ROOT/$mode/$task"
-
-        # 训练正常结束后才写 .done 标记；有标记就跳过
-        if [ -f "$dir/.done" ]; then
+    IFS="," read -r -a mode_list <<< "$modes"
+    for mode in "${mode_list[@]}"; do
+        if [ -f "process/$TRAIN_ROOT/$mode/$task/.done" ]; then
             echo "==> ${task} ${mode}：已完成，跳过"
-            continue
+            n_done=$((n_done + 1))
+        else
+            todo+=("$s $t $task $mode")
         fi
-        # main.py 遇到同名目录会自动加时间戳另建，导致汇总时找不到，所以提前拦下
-        if [ -d "$dir" ]; then
-            echo "[错误] ${dir} 已存在但没有完成标记（可能上次中断），请删除后重跑"; exit 1
-        fi
-
-        echo "==> ${task} ${mode}：开始训练"
-        $PYTHON main.py \
-            --device "$GPU" \
-            --name "$TRAIN_ROOT/$mode/$task" \
-            --epochs "$EPOCHS" \
-            --dataset "$DATASET" \
-            --source "$s" \
-            --target "$t" \
-            --align_mode "$mode"
-        touch "$dir/.done"
     done
+done
+echo "==> 已完成 ${n_done} 组，本次需要训练 ${#todo[@]} 组"
+
+k=0
+# ${todo[@]+...}：数组为空时不展开，避免 set -u 在旧版 bash 下报错
+for item in ${todo[@]+"${todo[@]}"}; do
+    read -r s t task mode <<< "$item"
+    k=$((k + 1))
+    dir="process/$TRAIN_ROOT/$mode/$task"
+
+    # main.py 遇到同名目录会自动加时间戳另建，导致汇总时找不到，所以提前拦下
+    if [ -d "$dir" ]; then
+        echo "[错误] ${dir} 已存在但没有完成标记（可能上次中断），请删除后重跑"; exit 1
+    fi
+
+    echo ""
+    echo "################################################################"
+    echo "==> 第 ${k}/${#todo[@]} 组：${task}（${s} -> ${t}），模式 ${mode}"
+    echo "################################################################"
+    $PYTHON main.py \
+        --device "$GPU" \
+        --name "$TRAIN_ROOT/$mode/$task" \
+        --epochs "$EPOCHS" \
+        --dataset "$DATASET" \
+        --source "$s" \
+        --target "$t" \
+        --align_mode "$mode"
+    # 训练正常结束后才写完成标记
+    touch "$dir/.done"
 done
 
 echo "==> 汇总"

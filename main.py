@@ -115,6 +115,12 @@ def start(args, target_dataloader, CLIP_model_raw):
                 gamma1 = clipProb.T / clipProb.size(0)                              # [C, B]
             elif args.align_mode == "clip_hard":
                 gamma1 = torch.nn.functional.one_hot(clipProb.argmax(dim=1), args.class_num).float().T / clipProb.size(0)
+            # 消融：和 OT 用同一个代价 / 核（同 getGamma），只做列归一化，不做 Sinkhorn 的类别边际投影
+            # ot - clip_sharp = 边际投影的作用；clip_sharp - clip_soft = 锐化的作用
+            elif args.align_mode == "clip_sharp":
+                feat_dist = 1 - clipProb.T                                          # [C, B]
+                cost = feat_dist / feat_dist.max() - torch.log(clipProb.T + 1e-6)   # 同 getGamma 的 cost_matrix
+                gamma1 = torch.softmax(-cost / args.otReg, dim=0) / clipProb.size(0)   # 每列 ∝ exp(-cost/ε)，质量 1/B
 
         ################################################
         modelFeatGradW = feature_net(weak_img)
@@ -221,8 +227,9 @@ if __name__ == "__main__":
 
     parser.add_argument("--snapshot_at", default=[], type=float, nargs="*", help="保存快照的训练进度，如 0 0.25 0.5")
     parser.add_argument("--stop_at", default=1.0, type=float, help="训练到该进度后停止，如 0.5")
-    parser.add_argument("--align_mode", default="ot", type=str, choices=["ot", "clip_soft", "clip_hard"],
-                        help="对齐损失用的计划：ot = 原方法；clip_soft / clip_hard = 消融，直接用 CLIP 软 / 硬标签")
+    parser.add_argument("--align_mode", default="ot", type=str, choices=["ot", "clip_soft", "clip_hard", "clip_sharp"],
+                        help="对齐损失用的计划：ot = 原方法；clip_soft / clip_hard = 消融，直接用 CLIP 软 / 硬标签；"
+                             "clip_sharp = 消融，和 OT 同一个核但不做类别边际投影")
 
     args = parser.parse_args()
 

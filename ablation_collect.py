@@ -20,6 +20,8 @@ import shutil
 import argparse
 
 # main.py 每次评估打印的行：... Iter:  680/2720; Now Acc: 0.6694; Best Acc: 0.6724
+ORDER = ("ot", "clip_soft", "clip_sharp", "clip_hard")   # 表格中模式的显示顺序
+
 PATTERN = re.compile(r"Iter:\s*(\d+)\s*/\s*(\d+); Now Acc: ([0-9.]+); Best Acc: ([0-9.]+)")
 
 
@@ -61,8 +63,8 @@ def main():
 
     md = []
     for task in sorted({t for t, _ in runs}):
-        modes = [m for m in ("ot", "clip_soft", "clip_hard") if (task, m) in runs] + \
-                sorted(m for t, m in runs if t == task and m not in ("ot", "clip_soft", "clip_hard"))
+        modes = [m for m in ORDER if (task, m) in runs] + \
+                sorted(m for t, m in runs if t == task and m not in ORDER)
         md += [f"## {task}", "", "| 模式 | 最终准确率 | 最佳准确率 | 最后 5 次评估均值 | 评估次数 | 是否跑完 |", "|---|---|---|---|---|---|"]
         for m in modes:
             pts = runs[(task, m)]
@@ -77,6 +79,17 @@ def main():
             pts = runs[(task, m)]
             md.append(f"- {m}: " + "  ".join(f"{it}:{acc:.4f}" for it, acc, _ in pts[::5] + pts[-1:]))
         md.append("")
+
+    # 分解：锐化 / 边际投影各自的作用（最后 5 次评估均值之差，单位：百分点）
+    last5 = lambda k: sum(p[1] for p in runs[k][-5:]) / len(runs[k][-5:]) if runs.get(k) else None
+    rows = []
+    for task in sorted({t for t, _ in runs}):
+        ot, soft, sharp, hard = (last5((task, m)) for m in ORDER)
+        diff = lambda x, y: f"{(x - y) * 100:+.2f}" if x is not None and y is not None else "-"
+        rows.append(f"| {task} | {diff(sharp, soft)} | {diff(ot, sharp)} | {diff(ot, soft)} | {diff(ot, hard)} |")
+    md += ["## 分解（最后 5 次评估均值之差，百分点）", "",
+           "| 任务 | 锐化（sharp − soft） | 边际投影（ot − sharp） | OT 总增益（ot − soft） | ot − hard |",
+           "|---|---|---|---|---|"] + rows + [""]
     text = "\n".join(md)
     with open(os.path.join(a.out, "summary.md"), "w", encoding="utf-8") as f:
         f.write(text)
