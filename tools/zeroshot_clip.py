@@ -11,10 +11,10 @@ CLIP 零样本准确率测试（不训练）
 
 用法（在项目根目录下，已执行过 scripts/link_data.sh）：
   python tools/zeroshot_clip.py
-输出：屏幕打印结果表，并保存到 zeroshot_results/<日期>/result.md、result.json
+输出：屏幕打印结果表，并保存到 runs/zeroshot_results/<日期>/result.md、result.json
 """
 import os as _os, sys as _sys
-# 本脚本在 tools/ 下：把项目根目录加入 import 路径（utils / model），并切换到根目录（代码用相对路径读 dataset/、process/）
+# 本脚本在 tools/ 下：把项目根目录加入 import 路径（utils / model），并切换到根目录（代码用相对路径读 dataset/、runs/process/）
 _ROOT = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
 _sys.path.insert(0, _ROOT)
 _os.chdir(_ROOT)
@@ -117,7 +117,7 @@ def main():
     text = "\n".join(lines)
     print("\n" + text)
 
-    out = os.path.join("zeroshot_results", datetime.datetime.now().strftime("%Y_%m_%d"))
+    out = os.path.join("runs/zeroshot_results", datetime.datetime.now().strftime("%Y_%m_%d"))
     os.makedirs(out, exist_ok=True)
     with open(os.path.join(out, "result.md"), "w", encoding="utf-8") as f:
         f.write(text + "\n")

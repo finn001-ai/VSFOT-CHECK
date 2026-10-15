@@ -27,7 +27,7 @@ DATASET="OfficeHomeDataset"
 PYTHON="python"
 
 # 日志输出目录（每个任务一个日志文件）
-LOG_DIR="logs"
+LOG_DIR="runs/logs"
 
 # -----------------------------------------------------------------------------
 # 二、训练参数
@@ -78,7 +78,7 @@ ADAPT_PAIRS=(
 # 以下一般不需要修改
 # =============================================================================
 
-# 切换到脚本所在目录（即项目根目录），因为代码用相对路径读 dataset/ 和写 process/
+# 切换到脚本所在目录（即项目根目录），因为代码用相对路径读 dataset/ 和写 runs/process/
 cd "$(dirname "$0")/.."    # 切换到项目根目录（本脚本在 scripts/ 下）
 mkdir -p "$LOG_DIR"
 
@@ -101,7 +101,7 @@ abbr() {
 }
 
 # 源模型保存目录名
-# main.py 读取的是 process/Source_home/Source_<域名小写>/Source.pt，
+# main.py 读取的是 runs/process/Source_home/Source_<域名小写>/Source.pt，
 # 而 realworld 在代码中会变成 "Real World"，小写后是 "real world"（带空格），
 # 所以 realworld 的目录名必须是 "Source_real world"
 source_dir_name() {
@@ -114,15 +114,15 @@ source_dir_name() {
 
 # -----------------------------------------------------------------------------
 # 第 1 步：训练源模型
-#   输出：process/Source_home/Source_<域>/Source.pt
+#   输出：runs/process/Source_home/Source_<域>/Source.pt
 # -----------------------------------------------------------------------------
 if [ "$RUN_SOURCE" = "1" ]; then
     echo "==> [1/2] 训练源模型"
     for s in "${SOURCE_DOMAINS[@]}"; do
         name="Source_home/$(source_dir_name "$s")"
 
-        if [ "$SKIP_EXISTING_SOURCE" = "1" ] && [ -f "process/$name/Source.pt" ]; then
-            echo "  跳过 ${s}（已存在 process/$name/Source.pt）"
+        if [ "$SKIP_EXISTING_SOURCE" = "1" ] && [ -f "runs/process/$name/Source.pt" ]; then
+            echo "  跳过 ${s}（已存在 runs/process/$name/Source.pt）"
             continue
         fi
 
@@ -140,7 +140,7 @@ fi
 
 # -----------------------------------------------------------------------------
 # 第 2 步：源无关域适配
-#   输出：process/OfficeHome/<Ar2Cl 等>/
+#   输出：runs/process/OfficeHome/<Ar2Cl 等>/
 #   注意：第一次运行会联网下载 CLIP 权重
 # -----------------------------------------------------------------------------
 if [ "$RUN_ADAPT" = "1" ]; then
@@ -151,7 +151,7 @@ if [ "$RUN_ADAPT" = "1" ]; then
         task="$(abbr "$s")2$(abbr "$t")"
 
         # 适配前确认对应的源模型已经训练好
-        ckpt="process/Source_home/$(source_dir_name "$s")/Source.pt"
+        ckpt="runs/process/Source_home/$(source_dir_name "$s")/Source.pt"
         if [ ! -f "$ckpt" ]; then
             echo "  [错误] 缺少源模型 ${ckpt}，请先训练源域 $s"; exit 1
         fi

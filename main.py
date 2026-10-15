@@ -22,7 +22,7 @@ from tqdm import tqdm
 IMAGEFILE = "dataset"    # 相对项目根目录；图片通过软链接放在 dataset/<数据集>/<域>/ 下
 
 def start(args, target_dataloader, CLIP_model_raw):
-    network = torch.load(os.path.join("process", args.sourceStorage, f"Source_{args.source.lower()}", "Source.pt"), weights_only=False)
+    network = torch.load(os.path.join("runs", "process", args.sourceStorage, f"Source_{args.source.lower()}", "Source.pt"), weights_only=False)
     feature_net = resnet(res_name=args.arch).to(args.device)
     feature_net.load_state_dict(network["best_feature"])
     classifier_net = classifier(class_num = args.class_num).to(args.device)
@@ -279,9 +279,9 @@ if __name__ == "__main__":
 
     filename = os.path.basename(sys.argv[0])[:-3] + "_" + datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
     if args.name == None:
-        Project(project_name=filename, root_name="process")    
+        Project(project_name=filename, root_name="runs/process")    
     else:
-        Project(project_name=args.name, root_name="process")
+        Project(project_name=args.name, root_name="runs/process")
     args_str = json.dumps(vars(args), ensure_ascii=False, indent=2)
     Project.log(args_str, filename=f"argsInfo.txt", is_print = False)
     Project.log(sys.argv[0])

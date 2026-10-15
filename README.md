@@ -7,15 +7,17 @@
 > | 步骤 | 命令 | 说明 |
 > |---|---|---|
 > | 1. 数据软链接（只需一次） | `bash scripts/link_data.sh` | 把云端数据链接到 `dataset/OfficeHomeDataset/`，含 `classname.txt` |
-> | 2. 训练源模型 + 12 个任务 | `bash scripts/run.sh` | 正式训练，结果在 `process/Source_home/`、`process/OfficeHome/` |
-> | 3. OT 消融 | `bash scripts/run_ablation.sh` | 结果打包到 `ablation_results/<日期>.zip` |
-> | 诊断：训练快照 + OT 指标 | `bash scripts/run_diag.sh` | 结果打包到 `diag_results/<日期>.zip` |
+> | 2. 训练源模型 + 12 个任务 | `bash scripts/run.sh` | 正式训练，结果在 `runs/process/Source_home/`、`runs/process/OfficeHome/` |
+> | 3. OT 消融 | `bash scripts/run_ablation.sh` | 结果打包到 `runs/ablation_results/<日期>.zip` |
+> | 诊断：训练快照 + OT 指标 | `bash scripts/run_diag.sh` | 结果打包到 `runs/diag_results/<日期>.zip` |
 > | 诊断：μ_p 消融等 | `bash scripts/run_diag_quick.sh` | 需要先跑上一行的快照 |
-> | 诊断：μ_p 估计器对比 | `bash scripts/run_diag_mu.sh` | 需要先跑 `run_diag.sh` 的快照；结果打包到 `diag_mu_results/<日期>.zip` |
-> | 诊断：全数据集 OT | `bash scripts/run_diag_global.sh` | 需要先跑 `run_diag.sh` 的快照；结果打包到 `diag_global_results/<日期>.zip` |
+> | 诊断：μ_p 估计器对比 | `bash scripts/run_diag_mu.sh` | 需要先跑 `run_diag.sh` 的快照；结果打包到 `runs/diag_mu_results/<日期>.zip` |
+> | 诊断：全数据集 OT | `bash scripts/run_diag_global.sh` | 需要先跑 `run_diag.sh` 的快照；结果打包到 `runs/diag_global_results/<日期>.zip` |
+> | 诊断：目标域结构 | `bash scripts/run_diag_struct.sh` | 需要先跑 `run_diag.sh` 的快照；结果打包到 `runs/diag_struct_results/<日期>.zip` |
 > | 检查 CLIP 零样本准确率 | `python tools/zeroshot_clip.py` | 应为平均 79.04%（论文表 4） |
 >
 > - `scripts/`：运行脚本，配置都写在每个脚本开头，有注释。`tools/`：被脚本调用的汇总 / 诊断程序。
+> - **所有输出都在 `runs/` 下**：训练产物 `runs/process/`，结果压缩包 `runs/<名称>_results/`，日志 `runs/logs/`。根目录只放代码。
 > - 和公开代码的区别：Office-Home 类名改为从 `classname.txt` 读取（原写死的类名在第 58–63 类和标签错位）；
 >   `main.py` 新增 `--align_mode`（OT 消融）、`--snapshot_at` / `--stop_at`（诊断快照）、进度条和训练计时。
 >   训练公式和超参与公开代码完全一致。修复类名后 Ar→Cl = 74.4%（论文 75.0%）。
@@ -73,7 +75,7 @@ python trainSource.py --name Source\Source_clipart --dataset OfficeHomeDataset -
 python trainSource.py --name Source\Source_art --dataset OfficeHomeDataset --source art
 ```
 
-The source checkpoint will be saved as: `process/Source/Source_<domain>/Source.pt`
+The source checkpoint will be saved as: `runs/process/Source/Source_<domain>/Source.pt`
 
 
 
@@ -95,7 +97,7 @@ python main.py --device 0 --name OfficeHome/Re2Pr --epochs 40 --dataset OfficeHo
 
 ```
 
-Outputs, logs, checkpoints, and copied code snapshots are saved under: `process/<experiment_name>/`
+Outputs, logs, checkpoints, and copied code snapshots are saved under: `runs/process/<experiment_name>/`
 
 
 ### Additional Note

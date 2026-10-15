@@ -8,11 +8,11 @@
 #               ot - clip_sharp = 边际投影的作用；clip_sharp - clip_soft = 锐化的作用
 # 其余（类权重、SimSiam、IM 损失、CLIP 反向蒸馏、学习率等）完全不变
 #
-# 前提：已执行 scripts/link_data.sh，源模型已训练好（process/Source_home/...）
+# 前提：已执行 scripts/link_data.sh，源模型已训练好（runs/process/Source_home/...）
 #
 # 在 Jupyter 里运行（项目根目录下）：
 #   !bash scripts/run_ablation.sh
-# 跑完下载 ablation_results/<日期>.zip
+# 跑完下载 runs/ablation_results/<日期>.zip
 #
 # 已完成的组（有 .done 标记）会自动跳过，可以放心重跑；中断的组按提示删除目录后重跑。
 # 耗时参考：目标域为 Clipart 的任务每组约 30 分钟，Pr2Re 每组约 85 分钟
@@ -40,10 +40,10 @@ RUNS=(
     # "product:realworld:ot,clip_soft,clip_sharp"     # 简单任务对照，每组约 85 分钟
 )
 
-# 训练输出到 process/<TRAIN_ROOT>/<模式>/<任务>_s<种子>/
-# AblationFix = 类名修复后的消融；旧的 process/Ablation/ 是修复前的结果，保留做对比
+# 训练输出到 runs/process/<TRAIN_ROOT>/<模式>/<任务>_s<种子>/
+# AblationFix = 类名修复后的消融；旧的 runs/process/Ablation/ 是修复前的结果，保留做对比
 TRAIN_ROOT="AblationFix"
-RESULT_DIR="ablation_results/$(date +%Y_%m_%d)"
+RESULT_DIR="runs/ablation_results/$(date +%Y_%m_%d)"
 
 # =============================================================================
 # 以下一般不需要修改
@@ -67,7 +67,7 @@ for seed in "${SEEDS[@]}"; do
         task="$(abbr "$s")2$(abbr "$t")"
         IFS="," read -r -a mode_list <<< "$modes"
         for mode in "${mode_list[@]}"; do
-            if [ -f "process/$TRAIN_ROOT/$mode/${task}_s${seed}/.done" ]; then
+            if [ -f "runs/process/$TRAIN_ROOT/$mode/${task}_s${seed}/.done" ]; then
                 echo "==> ${task} ${mode} seed=${seed}：已完成，跳过"
                 n_done=$((n_done + 1))
             else
@@ -83,7 +83,7 @@ k=0
 for item in ${todo[@]+"${todo[@]}"}; do
     read -r s t task mode seed <<< "$item"
     k=$((k + 1))
-    dir="process/$TRAIN_ROOT/$mode/${task}_s${seed}"
+    dir="runs/process/$TRAIN_ROOT/$mode/${task}_s${seed}"
 
     # main.py 遇到同名目录会自动加时间戳另建，导致汇总时找不到，所以提前拦下
     if [ -d "$dir" ]; then
@@ -108,5 +108,5 @@ for item in ${todo[@]+"${todo[@]}"}; do
 done
 
 echo "==> 汇总"
-$PYTHON tools/ablation_collect.py --process "process/$TRAIN_ROOT" --out "$RESULT_DIR"
+$PYTHON tools/ablation_collect.py --process "runs/process/$TRAIN_ROOT" --out "$RESULT_DIR"
 echo "==> 完成，下载 ${RESULT_DIR}.zip 发给我即可"

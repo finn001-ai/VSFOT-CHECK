@@ -1,8 +1,6 @@
 # Python 缓存
 __pycache__/
 
-# 训练输出、日志和结果压缩包（在云端生成，不提交）
-process/
-logs/
-*_results/
+# 所有输出（训练产物 runs/process/、结果 runs/*_results/、日志 runs/logs/），在云端生成，不提交
+runs/
 run_all.log

@@ -2,11 +2,11 @@
 # =============================================================================
 # μ_p 估计诊断：不用标签的类别边际估计器能收回多少 oracle（本批真实直方图）差距
 #
-# 不训练，直接使用 scripts/run_diag.sh 已保存的快照（process/DiagFix/<任务>/snapshot_*.pt）
+# 不训练，直接使用 scripts/run_diag.sh 已保存的快照（runs/process/DiagFix/<任务>/snapshot_*.pt）
 #
 # 在 Jupyter 里运行：
 #   !bash scripts/run_diag_mu.sh
-# 跑完下载 diag_mu_results/<日期>.zip
+# 跑完下载 runs/diag_mu_results/<日期>.zip
 # =============================================================================
 
 set -euo pipefail
@@ -18,14 +18,14 @@ PYTHON="python -u"
 GPU=0
 
 # 和 scripts/run_diag.sh 保持一致
-TRAIN_ROOT="DiagFix"     # 类名修复后的快照；旧的 process/Diag/ 是修复前的，不能再用
+TRAIN_ROOT="DiagFix"     # 类名修复后的快照；旧的 runs/process/Diag/ 是修复前的，不能再用
 STAGES=(p000 p025 p050)
 TASKS=(Ar2Cl Pr2Re)
 
 DIAG_BATCH=64
 DIAG_SEEDS="0 1 2"
 
-RESULT_DIR="diag_mu_results/$(date +%Y_%m_%d)"
+RESULT_DIR="runs/diag_mu_results/$(date +%Y_%m_%d)"
 
 # =============================================================================
 # 以下一般不需要修改
@@ -35,7 +35,7 @@ mkdir -p "$RESULT_DIR"
 
 for task in "${TASKS[@]}"; do
     for stage in "${STAGES[@]}"; do
-        snap="process/$TRAIN_ROOT/$task/snapshot_${stage}.pt"
+        snap="runs/process/$TRAIN_ROOT/$task/snapshot_${stage}.pt"
         out="$RESULT_DIR/$task/$stage"
         if [ ! -f "$snap" ]; then
             echo "[错误] 找不到快照 ${snap}，请先运行 bash scripts/run_diag.sh"; exit 1

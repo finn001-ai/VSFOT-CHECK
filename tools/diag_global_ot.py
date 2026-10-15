@@ -26,11 +26,11 @@
 模型概率用 BN eval 模式（全数据集一次前向，不依赖批）。
 
 用法（在项目根目录下）：
-  python tools/diag_global_ot.py --snapshot process/DiagFix/Ar2Cl/snapshot_p000.pt --out diag_global_results/Ar2Cl/p000
-  python tools/diag_global_ot.py --collect diag_global_results        # 汇总所有结果并打包 zip
+  python tools/diag_global_ot.py --snapshot runs/process/DiagFix/Ar2Cl/snapshot_p000.pt --out runs/diag_global_results/Ar2Cl/p000
+  python tools/diag_global_ot.py --collect runs/diag_global_results        # 汇总所有结果并打包 zip
 """
 import os as _os, sys as _sys
-# 本脚本在 tools/ 下：把项目根目录加入 import 路径（utils / model），并切换到根目录（代码用相对路径读 dataset/、process/）
+# 本脚本在 tools/ 下：把项目根目录加入 import 路径（utils / model），并切换到根目录（代码用相对路径读 dataset/、runs/process/）
 _ROOT = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
 _sys.path.insert(0, _ROOT)
 _os.chdir(_ROOT)
