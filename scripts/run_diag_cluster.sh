@@ -28,7 +28,7 @@ KS="65 130 260 520"      # 簇数：越大簇越细越纯，但每簇样本越�
 REG=0.05                 # 簇 → 类 OT 的熵正则 ε
 
 # 版本标签：改了命名方式后换一个标签，避免同一天的旧结果被当成「已有结果」跳过
-TAG="v2_two_namers"
+TAG="v3_source_namer"
 RESULT_DIR="runs/diag_cluster_results/$(date +%Y_%m_%d)_${TAG}"
 
 # =============================================================================
@@ -56,6 +56,7 @@ for task in "${TASKS[@]}"; do
             --device "$GPU" \
             --ks $KS \
             --reg "$REG" \
+            --source_snapshot "runs/$TRAIN_ROOT/$task/snapshot_p000.pt" \
             2>&1 | tee "$out/diag_log.txt"
     done
 done

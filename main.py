@@ -172,6 +172,15 @@ def start(args, target_dataloader, CLIP_model_raw):
             class_weights = 1.0 / cls_freq
         gamma1 = gamma1 * class_weights.unsqueeze(1)
         loss_align = torch.sum(gamma1 * cost_matrix)
+        # --align_view：学生在哪个视图上对齐老师的计划（老师的计划始终来自 CLIP 对 clip_img 的判断）
+        #   weak（默认，原方法）：学生看弱增强图像；strong：学生看强增强图像（Noisy Student：
+        #   输入和老师不同，最优解不再是复制老师）；both：两者取平均
+        if args.align_view != "weak":
+            modelFeatGradS = feature_net(strong_img)
+            modelProbGradS = torch.softmax(classifier_net(modelFeatGradS), dim=1)
+            _, cost_matrix_s = getGamma_self(args, modelProbGradS, modelFeatGradS, modelMemoryMean, classifier_net, reg=args.otReg)
+            loss_align_s = torch.sum(gamma1 * cost_matrix_s)
+            loss_align = loss_align_s if args.align_view == "strong" else (loss_align + loss_align_s) / 2
 
         loss_ctr = fastSimsiam(strong_img, strong2_img, SSNB)
 
@@ -279,6 +288,8 @@ if __name__ == "__main__":
                              "clip_sharp = 消融，和 OT 同一个核但不做类别边际投影")
     parser.add_argument("--knn_k", default=0, type=int,
                         help="> 0 时，对齐损失用的 CLIP 概率换成学生特征空间 k 近邻平滑后的版本：(自身 + 近邻平均) / 2；0 = 关闭（原方法）")
+    parser.add_argument("--align_view", default="weak", type=str, choices=["weak", "strong", "both"],
+                        help="学生在哪个视图上对齐老师的计划：weak = 原方法；strong = 强增强视图（Noisy Student）；both = 两者平均")
     parser.add_argument("--knn_mgva", action="store_true",
                         help="MGVA 中老师学的学生概率也做同样的近邻平滑（需要 --knn_k > 0）")
 

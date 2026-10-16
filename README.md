@@ -10,6 +10,7 @@
 > | 2. 训练源模型 + 12 个任务 | `bash scripts/run.sh` | 正式训练，结果在 `runs/Source_home/`、`runs/OfficeHome/` |
 > | 3. OT 消融 | `bash scripts/run_ablation.sh` | 结果打包到 `runs/ablation_results/<日期>.zip` |
 > | 4. 近邻平滑实验 | `bash scripts/run_knn.sh` | `--knn_k` / `--knn_mgva`，和消融基线一起汇总到 `runs/ablation_results/<日期>.zip` |
+> | 5. 强视图对齐实验 | `bash scripts/run_strong.sh` | `--align_view strong/both`（Noisy Student），和消融基线一起汇总 |
 > | 诊断：训练快照 + OT 指标 | `bash scripts/run_diag.sh` | 结果打包到 `runs/diag_results/<日期>.zip` |
 > | 诊断：μ_p 消融等 | `bash scripts/run_diag_quick.sh` | 需要先跑上一行的快照 |
 > | 诊断：μ_p 估计器对比 | `bash scripts/run_diag_mu.sh` | 需要先跑 `run_diag.sh` 的快照；结果打包到 `runs/diag_mu_results/<日期>.zip` |
@@ -21,7 +22,7 @@
 > - `scripts/`：运行脚本，配置都写在每个脚本开头，有注释。`tools/`：被脚本调用的汇总 / 诊断程序。
 > - **所有输出都在 `runs/` 下**：训练产物 `runs/`，结果压缩包 `runs/<名称>_results/`，日志 `runs/logs/`。根目录只放代码。
 > - 和公开代码的区别：Office-Home 类名改为从 `classname.txt` 读取（原写死的类名在第 58–63 类和标签错位）；
->   `main.py` 新增 `--align_mode`（OT 消融）、`--knn_k` / `--knn_mgva`（学生特征空间近邻平滑，默认关闭）、`--snapshot_at` / `--stop_at`（诊断快照）、进度条和训练计时。
+>   `main.py` 新增 `--align_mode`（OT 消融）、`--knn_k` / `--knn_mgva`（学生特征空间近邻平滑，默认关闭）、`--align_view`（强视图对齐，默认 weak）、`--snapshot_at` / `--stop_at`（诊断快照）、进度条和训练计时。
 >   训练公式和超参与公开代码完全一致。修复类名后 Ar→Cl = 74.4%（论文 75.0%）。
 > - 下方原 README 中 `--name Source\Source_art` 的反斜杠在 Linux 下会被吞掉，请用 `scripts/run.sh`，
 >   它会按 `Source_home/Source_<域>` 命名（realworld 为 `Source_real world`）。

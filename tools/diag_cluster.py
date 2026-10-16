@@ -22,6 +22,10 @@
       vote_prod    簇内 CLIP 平均概率 × 簇内学生平均概率（对数相加）取 argmax：两个专家都认可的命名才胜出
       ot_prod      OT 簇 → 类：代价 −log(簇内 CLIP 均值) − log(簇内学生均值)，类边际 = (CLIP 全域均值 + 学生全域均值) / 2
       mix_prod     (自身 CLIP + 自身学生) / 2 与所在簇的乘积命名概率再平均，逐样本取 argmax
+    独立的命名员（--source_snapshot 指向同一次训练的 p000 快照，即冻结的源模型；和 CLIP 一致率仅约 43%）：
+      vote_src       簇内源模型概率求和后取 argmax
+      vote_prod_src  簇内 CLIP 均值 × 簇内源模型均值（对数相加）取 argmax
+      ot_prod_src    OT 簇 → 类：代价为两者负对数之和，类边际 = (CLIP 全域均值 + 源模型全域均值) / 2
   - 参考：底座里的近邻平滑 knn_clip_s（k = 10）
 指标：准确率、相对 CLIP / 模型 / 「任一判对」并集的差值、纠正 / 改坏数，
       以及 **两边都错却被救回的样本数**（CLIP 和学生都判错、簇级命名判对）—— 只有这一项能越过并集上限。
@@ -61,7 +65,7 @@ from model.network import resnet, classifier
 
 SCALE = 100.0          # main.py 中写死的 CLIP 尺度
 NAMINGS = ["vote_hard", "vote_soft", "ot_clipmean", "ot_uniform", "ot_true", "mix_soft",
-           "vote_model", "vote_prod", "ot_prod", "mix_prod"]
+           "vote_model", "vote_prod", "ot_prod", "mix_prod", "vote_src", "vote_prod_src", "ot_prod_src"]
 
 
 # =============================================================================
@@ -106,6 +110,20 @@ def ot_name(mean_cost, size, N, mu, reg, K, device):
     label = torch.zeros(K, dtype=torch.long, device=device)
     label[keep] = torch.from_numpy(plan.argmax(axis=1)).to(device)
     return label
+
+
+def name_with_expert(assign, K, q_v, q_e, suffix, reg):
+    """用一个额外专家 q_e 和 CLIP 一起在簇层面命名：vote_{suffix} / vote_prod_{suffix} / ot_prod_{suffix}"""
+    N, C = q_v.shape
+    onehot = F.one_hot(assign, K).float()
+    size = onehot.sum(dim=0)
+    mean_p = (onehot.T @ q_v) / size.clamp_min(1).unsqueeze(1)
+    mean_e = (onehot.T @ q_e) / size.clamp_min(1).unsqueeze(1)
+    log_prod = torch.log(mean_p + 1e-6) + torch.log(mean_e + 1e-6)
+    mu_avg = (q_v.mean(0) + q_e.mean(0)).cpu().numpy() / 2
+    return {f"vote_{suffix}": mean_e.argmax(1)[assign],
+            f"vote_prod_{suffix}": log_prod.argmax(1)[assign],
+            f"ot_prod_{suffix}": ot_name(-log_prod, size, N, mu_avg, reg, K, q_v.device)[assign]}
 
 
 def name_clusters(assign, K, q_v, mus, reg, q_m=None):
@@ -202,6 +220,19 @@ def run(cli):
             q_m[idx] = torch.softmax(classifier_net(fe), dim=1)
             y[idx] = item["label"].to(device)
     clip_pred, model_pred = q_v.argmax(1), q_m.argmax(1)
+
+    # ---------------- 冻结的源模型（同一次训练的 p000 快照）----------------
+    q_s = None
+    if cli.source_snapshot:
+        src = torch.load(cli.source_snapshot, map_location="cpu", weights_only=False)
+        assert src["imgs"] == snap["imgs"], "源模型快照和当前快照的图片顺序不一致，应来自同一次训练"
+        src_feat = resnet(res_name=A.arch).to(device); src_feat.load_state_dict(src["feature"]); src_feat.eval()
+        src_cls = classifier(class_num=C).to(device); src_cls.load_state_dict(src["classifier"]); src_cls.eval()
+        q_s = torch.zeros(N, C, device=device)
+        with torch.no_grad():
+            for item in tqdm(DataLoader(dataset, batch_size=128, num_workers=cli.num_workers), desc="源模型前向"):
+                q_s[item["index"].to(device)] = torch.softmax(src_cls(src_feat(item["img"].to(device).float())), dim=1)
+        print(f"[源模型] 准确率={(q_s.argmax(1) == y).float().mean().item():.4f}  和 CLIP 一致率={(q_s.argmax(1) == clip_pred).float().mean().item():.4f}")
     yn = y.cpu().numpy()
     mus = {"ot_clipmean": q_v.mean(0).cpu().numpy(),
            "ot_uniform": np.full(C, 1.0 / C),
@@ -226,11 +257,14 @@ def run(cli):
             sizes = torch.bincount(assign, minlength=K)
             row = {"K": K, "purity": purity, "n_empty": int((sizes == 0).sum()), "min_size": int(sizes[sizes > 0].min()),
                    "max_size": int(sizes.max())}
-            for name, pred in name_clusters(assign, K, q_v, mus, cli.reg, q_m).items():
+            named = name_clusters(assign, K, q_v, mus, cli.reg, q_m)
+            if q_s is not None:
+                named.update(name_with_expert(assign, K, q_v, q_s, "src", cli.reg))
+            for name, pred in named.items():
                 row[name] = metrics(pred, y, clip_pred, model_pred)
             rows.append(row)
             print(f"  K={K:4d} 纯度={purity:.4f}  " + "  ".join(
-                f"{n}={row[n]['acc']:.4f}({row[n]['d_clip'] * 100:+.1f}, 救回{row[n]['both_wrong_saved']})" for n in NAMINGS))
+                f"{n}={row[n]['acc']:.4f}({row[n]['d_clip'] * 100:+.1f}, 救回{row[n]['both_wrong_saved']})" for n in NAMINGS if n in row))
 
     summary = {"snapshot": cli.snapshot, "progress": snap["progress"], "task": f"{A.source}->{A.target}",
                "ref": ref, "rows": rows, "reg": cli.reg, "elapsed_sec": round(time.time() - t0, 1)}
@@ -264,7 +298,7 @@ def collect(root):
     for s in S:
         md.append(f"| {s['task']} | {s['progress']} | " + " | ".join(pct(r["purity"]) for r in s["rows"]) + " |")
 
-    for name in NAMINGS:
+    for name in [n for n in NAMINGS if n in S[0]["rows"][0]]:
         md += ["", f"## {name}：准确率（±CLIP / ±并集 / 救回）", "", "| 任务 | 进度 | " + " | ".join(f"K={r['K']}" for r in S[0]["rows"]) + " |",
                "|" + "---|" * (2 + len(S[0]["rows"]))]
         for s in S:
@@ -290,6 +324,8 @@ if __name__ == "__main__":
     parser.add_argument("--kmeans_iters", type=int, default=50)
     parser.add_argument("--kmeans_seeds", type=int, default=3, help="k-means 跑几个种子，按目标函数选最好的（不用标签）")
     parser.add_argument("--reg", type=float, default=0.05, help="簇 → 类 OT 的熵正则 ε")
+    parser.add_argument("--source_snapshot", type=str, default=None,
+                        help="同一次训练的 p000 快照（冻结的源模型），作为独立的簇命名员；不给则不测")
     parser.add_argument("--num_workers", type=int, default=4)
     cli = parser.parse_args()
     if cli.collect:
