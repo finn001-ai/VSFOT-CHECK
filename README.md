@@ -15,6 +15,7 @@
 > | 诊断：μ_p 估计器对比 | `bash scripts/run_diag_mu.sh` | 需要先跑 `run_diag.sh` 的快照；结果打包到 `runs/diag_mu_results/<日期>.zip` |
 > | 诊断：全数据集 OT | `bash scripts/run_diag_global.sh` | 需要先跑 `run_diag.sh` 的快照；结果打包到 `runs/diag_global_results/<日期>.zip` |
 > | 诊断：目标域结构 | `bash scripts/run_diag_struct.sh` | 需要先跑 `run_diag.sh` 的快照；结果打包到 `runs/diag_struct_results/<日期>.zip` |
+> | 诊断：簇级命名（方案 A） | `bash scripts/run_diag_cluster.sh` | 需要先跑 `run_diag.sh` 的快照；结果打包到 `runs/diag_cluster_results/<日期>.zip` |
 > | 检查 CLIP 零样本准确率 | `python tools/zeroshot_clip.py` | 应为平均 79.04%（论文表 4） |
 >
 > - `scripts/`：运行脚本，配置都写在每个脚本开头，有注释。`tools/`：被脚本调用的汇总 / 诊断程序。
