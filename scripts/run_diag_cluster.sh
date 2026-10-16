@@ -27,7 +27,9 @@ TASKS=(Ar2Cl Pr2Re)
 KS="65 130 260 520"      # 簇数：越大簇越细越纯，但每簇样本越少、投票越不稳
 REG=0.05                 # 簇 → 类 OT 的熵正则 ε
 
-RESULT_DIR="runs/diag_cluster_results/$(date +%Y_%m_%d)"
+# 版本标签：改了命名方式后换一个标签，避免同一天的旧结果被当成「已有结果」跳过
+TAG="v2_two_namers"
+RESULT_DIR="runs/diag_cluster_results/$(date +%Y_%m_%d)_${TAG}"
 
 # =============================================================================
 # 以下一般不需要修改

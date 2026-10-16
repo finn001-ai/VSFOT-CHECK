@@ -17,6 +17,11 @@
       ot_uniform   同上，类边际 = 均匀
       ot_true      同上，类边际 = 真实全域类频率（用了标签，参考）
       mix_soft     (自身 CLIP 概率 + 所在簇的平均 CLIP 概率) / 2，逐样本取 argmax
+    第二个命名员（错误模式和 CLIP 不同；2026-10-16 加入，见 archive/2026_10_16_diag_cluster）：
+      vote_model   簇内学生概率求和后取 argmax
+      vote_prod    簇内 CLIP 平均概率 × 簇内学生平均概率（对数相加）取 argmax：两个专家都认可的命名才胜出
+      ot_prod      OT 簇 → 类：代价 −log(簇内 CLIP 均值) − log(簇内学生均值)，类边际 = (CLIP 全域均值 + 学生全域均值) / 2
+      mix_prod     (自身 CLIP + 自身学生) / 2 与所在簇的乘积命名概率再平均，逐样本取 argmax
   - 参考：底座里的近邻平滑 knn_clip_s（k = 10）
 指标：准确率、相对 CLIP / 模型 / 「任一判对」并集的差值、纠正 / 改坏数，
       以及 **两边都错却被救回的样本数**（CLIP 和学生都判错、簇级命名判对）—— 只有这一项能越过并集上限。
@@ -55,7 +60,8 @@ from utils.adapterVIT import clipAdapter
 from model.network import resnet, classifier
 
 SCALE = 100.0          # main.py 中写死的 CLIP 尺度
-NAMINGS = ["vote_hard", "vote_soft", "ot_clipmean", "ot_uniform", "ot_true", "mix_soft"]
+NAMINGS = ["vote_hard", "vote_soft", "ot_clipmean", "ot_uniform", "ot_true", "mix_soft",
+           "vote_model", "vote_prod", "ot_prod", "mix_prod"]
 
 
 # =============================================================================
@@ -88,7 +94,21 @@ def spherical_kmeans(x, K, iters, seed):
 # =============================================================================
 # 簇级命名
 # =============================================================================
-def name_clusters(assign, K, q_v, mus, reg):
+def ot_name(mean_cost, size, N, mu, reg, K, device):
+    """OT 簇 → 类：mean_cost [K, C]，簇边际 = 簇大小 / N，类边际 = mu；返回每个簇的类"""
+    keep = size > 0
+    a = (size[keep] / N).double().cpu().numpy()
+    M = mean_cost[keep].double().cpu().numpy()
+    b = np.clip(mu, 1e-12, None); b = b / b.sum()
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        plan = ot.sinkhorn(a, b, M, reg, method="sinkhorn_log", numItermax=5000, stopThr=1e-9)
+    label = torch.zeros(K, dtype=torch.long, device=device)
+    label[keep] = torch.from_numpy(plan.argmax(axis=1)).to(device)
+    return label
+
+
+def name_clusters(assign, K, q_v, mus, reg, q_m=None):
     """返回 {命名方式: 每个样本的预测类}"""
     N, C = q_v.shape
     onehot = F.one_hot(assign, K).float()                   # [N, K]
@@ -112,6 +132,15 @@ def name_clusters(assign, K, q_v, mus, reg):
         label = torch.full((K,), 0, dtype=torch.long, device=q_v.device)
         label[keep] = torch.from_numpy(plan.argmax(axis=1)).to(q_v.device)
         out[name] = label[assign]
+    if q_m is not None:
+        mean_m = (onehot.T @ q_m) / size.clamp_min(1).unsqueeze(1)                  # [K, C] 簇内平均学生概率
+        log_prod = torch.log(mean_p + 1e-6) + torch.log(mean_m + 1e-6)             # 两个专家的乘积（对数）
+        prod = torch.softmax(log_prod, dim=1)
+        out["vote_model"] = mean_m.argmax(1)[assign]
+        out["vote_prod"] = log_prod.argmax(1)[assign]
+        mu_avg = (q_v.mean(0) + q_m.mean(0)).cpu().numpy() / 2
+        out["ot_prod"] = ot_name(-log_prod, size, N, mu_avg, reg, K, q_v.device)[assign]
+        out["mix_prod"] = (((q_v + q_m) / 2 + prod[assign]) / 2).argmax(1)
     return out
 
 
@@ -197,7 +226,7 @@ def run(cli):
             sizes = torch.bincount(assign, minlength=K)
             row = {"K": K, "purity": purity, "n_empty": int((sizes == 0).sum()), "min_size": int(sizes[sizes > 0].min()),
                    "max_size": int(sizes.max())}
-            for name, pred in name_clusters(assign, K, q_v, mus, cli.reg).items():
+            for name, pred in name_clusters(assign, K, q_v, mus, cli.reg, q_m).items():
                 row[name] = metrics(pred, y, clip_pred, model_pred)
             rows.append(row)
             print(f"  K={K:4d} 纯度={purity:.4f}  " + "  ".join(
