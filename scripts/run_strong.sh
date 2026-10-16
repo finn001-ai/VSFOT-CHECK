@@ -30,18 +30,21 @@ EPOCHS=40              # README 命令的设置
 SEEDS=(42)             # 和 AblationFix 基线相同的种子
 
 # 实验组，格式 "组名|额外参数"；不想跑的行在前面加 # 注释掉
+# 第 1 轮（2026-10-16，只跑了 Ar→Cl）：ot_strong 73.82、ot_knn10_strong 74.78 都不如对照，
+# 只有 ot_knn10_both 75.98（相对 ot_knn10 +0.79）有效，所以第 2 轮只保留 both
 RUN_GROUPS=(
-    "ot_strong|--align_mode ot --align_view strong"
-    "ot_knn10_strong|--align_mode ot --knn_k 10 --align_view strong"
+    # "ot_strong|--align_mode ot --align_view strong"
+    # "ot_knn10_strong|--align_mode ot --knn_k 10 --align_view strong"
     "ot_knn10_both|--align_mode ot --knn_k 10 --align_view both"
+    # "ot_both|--align_mode ot --align_view both"      # 可选：不加近邻平滑，看 both 单独的作用（论文消融用）
 )
 
 # 任务，格式 "源域:目标域"
-# 先只跑 Ar→Cl 看方向；有效再取消下面两行的注释
+# 第 2 轮：在另外两个难任务上验证 both（Ar→Cl 已完成，会自动跳过）
 TASKS=(
     "art:clipart"
-    # "product:clipart"
-    # "realworld:clipart"
+    "product:clipart"
+    "realworld:clipart"
 )
 
 # 和 scripts/run_ablation.sh 用同一个目录，汇总时自动包含基线
