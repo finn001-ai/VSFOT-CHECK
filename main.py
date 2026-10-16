@@ -24,10 +24,71 @@ import numpy as np
 
 IMAGEFILE = "dataset"    # 相对项目根目录；图片通过软链接放在 dataset/<数据集>/<域>/ 下
 
+def get_rng_state():
+    return (random.getstate(), np.random.get_state(), torch.get_rng_state(), torch.cuda.get_rng_state_all())
+
+
+def set_rng_state(state):
+    random.setstate(state[0]); np.random.set_state(state[1])
+    torch.set_rng_state(state[2]); torch.cuda.set_rng_state_all(state[3])
+
+
+def eval_dynamics(feature_net, classifier_net, CLIP_model, cls_text, loader, device):
+    """训练动态：学生 / 老师（带 adapter 的 CLIP）在目标域全部图片上的预测、熵和标签（标签只用于记录）"""
+    rng_state = get_rng_state()          # 遍历 DataLoader 会消耗随机数，恢复后训练过程和不记录时完全一致
+    feature_net.eval(); CLIP_model.eval()
+    N = len(loader.dataset)
+    out = {k: torch.zeros(N, dtype=torch.long, device=device) for k in ("s_pred", "t_pred", "label")}
+    out.update({k: torch.zeros(N, device=device) for k in ("s_ent", "t_ent")})
+    with torch.no_grad():
+        tf = CLIP_model.encode_text(cls_text)
+        tf = tf / tf.norm(dim=-1, keepdim=True)
+        for item in loader:
+            idx = item["index"].to(device)
+            ps = torch.softmax(classifier_net(feature_net(item["img"].to(device).float())), dim=1)
+            vf = CLIP_model.encode_image(item["clip_img"].to(device).float())
+            pt = torch.softmax(100 * (vf / vf.norm(dim=-1, keepdim=True)) @ tf.T, dim=1)
+            out["s_pred"][idx], out["t_pred"][idx] = ps.argmax(1), pt.argmax(1)
+            out["s_ent"][idx] = -(ps * torch.log(ps + 1e-8)).sum(1)
+            out["t_ent"][idx] = -(pt * torch.log(pt + 1e-8)).sum(1)
+            out["label"][idx] = item["label"].to(device)
+    CLIP_model.train()                   # 训练循环每步开头会把 feature_net 设回 train
+    set_rng_state(rng_state)
+    return out
+
+
+def log_dynamics(path, iter_num, epoch, cur, prev, acc, lr):
+    """把一行训练动态追加到 dynamics.csv；acc 是本 epoch 训练中的损失 / 伪标签统计（可为空）"""
+    y = cur["label"]
+    s_ok, t_ok = cur["s_pred"] == y, cur["t_pred"] == y
+    row = {
+        "iter": iter_num, "epoch": epoch, "lr": lr,
+        "student_acc": s_ok.float().mean().item(), "teacher_acc": t_ok.float().mean().item(),
+        "agree": (cur["s_pred"] == cur["t_pred"]).float().mean().item(),
+        "either_acc": (s_ok | t_ok).float().mean().item(),
+        "both_wrong": int((~s_ok & ~t_ok).sum()),
+        "student_flip": (cur["s_pred"] != prev["s_pred"]).float().mean().item() if prev else float("nan"),
+        "teacher_flip": (cur["t_pred"] != prev["t_pred"]).float().mean().item() if prev else float("nan"),
+        "student_ent": cur["s_ent"].mean().item(), "teacher_ent": cur["t_ent"].mean().item(),
+    }
+    n = acc.get("n", 0)
+    for k in ("loss_align", "loss_ctr", "loss_iml", "loss_vil"):
+        row[k] = acc[k] / n if n else float("nan")
+    m = acc.get("m", 0)
+    row["pl_gamma_acc"] = acc["pl_gamma"] / m if m else float("nan")     # 对齐用的计划 gamma1 每列 argmax 的准确率
+    row["pl_align_acc"] = acc["pl_align"] / m if m else float("nan")     # 对齐用的 CLIP 概率（近邻平滑后）argmax 的准确率
+    new = not os.path.exists(path)
+    with open(path, "a", encoding="utf-8") as fp:
+        if new:
+            fp.write(",".join(row.keys()) + "\n")
+        fp.write(",".join(f"{v:.6f}" if isinstance(v, float) else str(v) for v in row.values()) + "\n")
+    return row
+
+
 def init_feat_bank(feature_net, loader, device):
     """学生特征库：目标域每张图的学生特征（L2 归一化），用测试变换做一遍前向初始化"""
     # 遍历 DataLoader 会消耗随机数，先保存再恢复，保证之后的训练随机序列和不开 --knn_k 时完全一致
-    rng_state = (random.getstate(), np.random.get_state(), torch.get_rng_state(), torch.cuda.get_rng_state_all())
+    rng_state = get_rng_state()
     feature_net.eval()
     bank = None
     with torch.no_grad():
@@ -36,8 +97,7 @@ def init_feat_bank(feature_net, loader, device):
             if bank is None:
                 bank = torch.zeros(len(loader.dataset), feat.shape[1], device=device)
             bank[item["index"].to(device)] = feat
-    random.setstate(rng_state[0]); np.random.set_state(rng_state[1])
-    torch.set_rng_state(rng_state[2]); torch.cuda.set_rng_state_all(rng_state[3])
+    set_rng_state(rng_state)
     return bank
 
 
@@ -93,6 +153,14 @@ def start(args, target_dataloader, CLIP_model_raw):
     # 学习率调度仍按完整的 max_iter 计算，所以快照和完整训练时同一进度的状态一致
     snapshot_iters = {int(p * max_iter): p for p in args.snapshot_at}
     stop_iter = int(args.stop_at * max_iter)
+
+    # --log_dynamics：每个 epoch 记录学生 / 老师的准确率、一致率、翻转率、熵、伪标签准确率和各项损失（dynamics.csv）
+    dyn_path = os.path.join(Project.root_path, "dynamics.csv")
+    dyn_prev, dyn_acc = None, {}
+    if args.log_dynamics:
+        dyn_prev = eval_dynamics(feature_net, classifier_net, CLIP_model, cls_text, target_dataloader["test"], args.device)
+        r = log_dynamics(dyn_path, 0, 0, dyn_prev, None, {}, model_optimizer.param_groups[1]["lr"])
+        tqdm.write(f"[dyn] iter 0  学生 {r['student_acc']:.4f}  老师 {r['teacher_acc']:.4f}  一致率 {r['agree']:.3f}")
 
     # 进度条代替逐步打印；每一步的损失仍完整写入 run_log.txt
     bar = tqdm(total=min(stop_iter, max_iter), desc=f"{args.source}->{args.target}", dynamic_ncols=True, mininterval=1.0)
@@ -233,6 +301,16 @@ def start(args, target_dataloader, CLIP_model_raw):
             feat_bank[index_img] = F.normalize(modelFeat, dim=1)
 
         ################################################
+        if args.log_dynamics:
+            with torch.no_grad():
+                y_b = item["label"].to(args.device)
+                for k, v in (("loss_align", loss_align), ("loss_ctr", loss_ctr), ("loss_iml", loss_iml), ("loss_vil", loss_vil)):
+                    dyn_acc[k] = dyn_acc.get(k, 0.0) + v.item()
+                dyn_acc["n"] = dyn_acc.get("n", 0) + 1
+                dyn_acc["pl_gamma"] = dyn_acc.get("pl_gamma", 0) + int((gamma1.argmax(dim=0) == y_b).sum())
+                dyn_acc["pl_align"] = dyn_acc.get("pl_align", 0) + int((alignProb.argmax(dim=1) == y_b).sum())
+                dyn_acc["m"] = dyn_acc.get("m", 0) + len(y_b)
+
         log_str = f'Task: SFDA, Test Target, {args.source} -> {args.target}, Iter: {iter_num:4d}/{max_iter:4d}; Align: {loss_align.item():.4f}; CTR: {loss_ctr.item():.4f}; IML: {loss_iml.item():.4f}; VLM: {loss_vil.item():.4f};'
         Project.log(log_str, is_print=False)
         bar.set_postfix(align=f"{loss_align.item():.3f}", ctr=f"{loss_ctr.item():.3f}", iml=f"{loss_iml.item():.3f}",
@@ -248,6 +326,12 @@ def start(args, target_dataloader, CLIP_model_raw):
             log_str = f'Task: SFDA, Test Target, {args.source} -> {args.target}, Iter: {iter_num:4d}/{max_iter:4d}; Now Acc: {acc_total:.4f}; Best Acc: {best_acc:.4f}'
             Project.log(log_str, is_print=False)
             tqdm.write(f"[eval] iter {iter_num:4d}/{max_iter}  acc {acc_total:.4f}  best {best_acc:.4f}")
+            if args.log_dynamics:
+                cur = eval_dynamics(feature_net, classifier_net, CLIP_model, cls_text, target_dataloader["test"], args.device)
+                r = log_dynamics(dyn_path, iter_num, now_epoch, cur, dyn_prev, dyn_acc, model_optimizer.param_groups[1]["lr"])
+                tqdm.write(f"[dyn] iter {iter_num:4d}  老师 {r['teacher_acc']:.4f}  一致率 {r['agree']:.3f}  两边都错 {r['both_wrong']}  "
+                           f"翻转 学生 {r['student_flip']:.3f} / 老师 {r['teacher_flip']:.3f}  伪标签 {r['pl_gamma_acc']:.4f}")
+                dyn_prev, dyn_acc = cur, {}
         iter_num += 1
         bar.update(1)
     bar.close()
@@ -290,6 +374,8 @@ if __name__ == "__main__":
                         help="> 0 时，对齐损失用的 CLIP 概率换成学生特征空间 k 近邻平滑后的版本：(自身 + 近邻平均) / 2；0 = 关闭（原方法）")
     parser.add_argument("--align_view", default="weak", type=str, choices=["weak", "strong", "both"],
                         help="学生在哪个视图上对齐老师的计划：weak = 原方法；strong = 强增强视图（Noisy Student）；both = 两者平均")
+    parser.add_argument("--log_dynamics", action="store_true",
+                        help="每个 epoch 记录训练动态到 dynamics.csv（老师准确率、一致率、翻转率、熵、伪标签准确率、各项损失）；不影响训练过程")
     parser.add_argument("--knn_mgva", action="store_true",
                         help="MGVA 中老师学的学生概率也做同样的近邻平滑（需要 --knn_k > 0）")
 

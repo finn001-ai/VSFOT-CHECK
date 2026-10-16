@@ -84,10 +84,11 @@ def main():
             "final": pts[-1][1] if pts else None,
             "best": pts[-1][2] if pts else None,
             "last5": statistics.mean(p[1] for p in pts[-5:]) if pts else None,
+            "dyn": os.path.join(run_dir, "dynamics.csv") if os.path.isfile(os.path.join(run_dir, "dynamics.csv")) else None,
         })
         dst = os.path.join(a.out, "logs", mode, os.path.basename(run_dir))
         os.makedirs(dst, exist_ok=True)
-        for name in ("run_log.txt", "argsInfo.txt", "ModellineAcc.txt", ".done"):
+        for name in ("run_log.txt", "argsInfo.txt", "ModellineAcc.txt", ".done", "dynamics.csv"):
             if os.path.isfile(os.path.join(run_dir, name)):
                 shutil.copy(os.path.join(run_dir, name), os.path.join(dst, name))
 
@@ -152,6 +153,32 @@ def main():
     md += [f"| {t} | {diff(t, 'clip_sharp', 'clip_soft')} | {diff(t, 'ot', 'clip_sharp')} | "
            f"{diff(t, 'ot', 'clip_soft')} | {diff(t, 'ot', 'clip_hard')} |" for t in tasks]
     md.append("")
+
+    # ---------------- 训练动态（--log_dynamics 的组）----------------
+    cols = [("student_acc", "学生", True), ("teacher_acc", "老师", True), ("agree", "一致率", True),
+            ("either_acc", "任一判对", True), ("both_wrong", "两边都错", False),
+            ("student_flip", "学生翻转", True), ("teacher_flip", "老师翻转", True),
+            ("pl_gamma_acc", "伪标签(gamma1)", True), ("pl_align_acc", "伪标签(对齐概率)", True),
+            ("student_ent", "学生熵", False), ("teacher_ent", "老师熵", False),
+            ("loss_align", "L_align", False), ("loss_ctr", "L_ctr", False), ("loss_iml", "L_iml", False), ("loss_vil", "L_vil", False)]
+    for r in [r for r in runs if r["dyn"]]:
+        with open(r["dyn"], encoding="utf-8") as fp:
+            rows = list(csv.DictReader(fp))
+        pick = [rows[i] for i in sorted({0, 1, 2, 3, 5, 8, 11, 15, 20, 25, 30, 35, len(rows) - 1}) if i < len(rows)]
+        md += [f"## 训练动态：{r['mode']} / {r['task']}_s{r['seed']}", "",
+               "百分比列为 %；翻转 = 和上一次评估相比改变预测的样本比例；伪标签准确率只在训练批上统计（标签只用于记录）。", "",
+               "| iter | " + " | ".join(c[1] for c in cols) + " |", "|" + "---|" * (1 + len(cols))]
+        for row in pick:
+            cells = []
+            for k, _, is_pct in cols:
+                v = row.get(k, "")
+                try:
+                    x = float(v)
+                    cells.append("-" if x != x else (f"{x * 100:.2f}" if is_pct else (f"{int(x)}" if k == "both_wrong" else f"{x:.3f}")))
+                except ValueError:
+                    cells.append("-")
+            md.append(f"| {row['iter']} | " + " | ".join(cells) + " |")
+        md.append("")
 
     text = "\n".join(md)
     with open(os.path.join(a.out, "summary.md"), "w", encoding="utf-8") as f:
