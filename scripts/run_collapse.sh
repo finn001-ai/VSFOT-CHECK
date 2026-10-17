@@ -11,6 +11,8 @@
 #     both_adapter12   CLIP 全部 12 个 block 都插 adapter：老师容量变大后，不动点会不会一起抬高
 #                      （adapter 初始化多消耗随机数，所以从第 0 步起就和底座不同）
 #     both_selfknn025  进度 0.25 后近邻平滑改用 (CLIP + 学生) / 2：对齐目标高于学生之后，能否越过不动点
+#   第 2 轮（--align_agree_after）：到该进度后只在学生预测 = 计划 argmax 的样本上做对齐，分歧样本上不再把学生拉向老师
+#     both_agree010 / both_agree025   第 272 / 680 步起
 #
 # 结果写到 runs/AblationFix/<组名>/<任务>_s<种子>/，汇总表末尾附「训练动态」表，另有 collapse.md（状态转移）
 #
@@ -37,10 +39,14 @@ BASE="--align_mode ot --knn_k 10 --align_view both --log_dynamics --log_samples"
 
 # 实验组，格式 "组名|额外参数"；不想跑的行在前面加 # 注释掉
 RUN_GROUPS=(
+    # 第 1 轮（2026-10-17，已完成，会自动跳过）：漏洞在学生侧；冻结老师 / 12 个 adapter / 混入学生概率都无效
     "both_samples|$BASE"
-    "both_freezeT020|$BASE --freeze_teacher_at 0.2"
-    "both_adapter12|$BASE --adaptercount 12"
-    "both_selfknn025|$BASE --knn_self_after 0.25 --knn_self_w 0.5"
+    # "both_freezeT020|$BASE --freeze_teacher_at 0.2"
+    # "both_adapter12|$BASE --adaptercount 12"
+    # "both_selfknn025|$BASE --knn_self_after 0.25 --knn_self_w 0.5"
+    # 第 2 轮：后期只在师生一致的样本上对齐（分歧样本上学生判对的次数约为老师的 2 倍，交叉点在第 204 步左右）
+    # "both_agree010|$BASE --align_agree_after 0.1"     # 第 272 步起
+    # "both_agree025|$BASE --align_agree_after 0.25"    # 第 680 步起
 )
 
 # 先只看 Ar→Cl

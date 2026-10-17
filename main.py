@@ -159,11 +159,13 @@ def start(args, target_dataloader, CLIP_model_raw):
 
     # 诊断用：在指定训练进度保存快照（默认不保存），并可提前停止（默认跑完）
     # 学习率调度仍按完整的 max_iter 计算，所以快照和完整训练时同一进度的状态一致
-    snapshot_iters = {int(p * max_iter): p for p in args.snapshot_at}
+    # 进度 1.0 的快照存在最后一步（max_iter - 1）开始前：循环到不了 max_iter
+    snapshot_iters = {min(int(p * max_iter), max_iter - 1): p for p in args.snapshot_at}
     stop_iter = int(args.stop_at * max_iter)
     # 共识塌缩实验：默认 1.0 = 永不触发（原方法）
     freeze_teacher_iter = int(args.freeze_teacher_at * max_iter)    # 从这一步起老师（CLIP adapter）不再更新
     knn_self_iter = int(args.knn_self_after * max_iter)              # 从这一步起近邻平滑混入学生概率
+    align_agree_iter = int(args.align_agree_after * max_iter)        # 从这一步起只在师生一致的样本上做对齐
 
     # --log_dynamics：每个 epoch 记录学生 / 老师的准确率、一致率、翻转率、熵、伪标签准确率和各项损失（dynamics.csv）
     dyn_path = os.path.join(Project.root_path, "dynamics.csv")
@@ -262,6 +264,10 @@ def start(args, target_dataloader, CLIP_model_raw):
             total_cls = MB.model_bank.mean(dim=0)
             cls_freq = torch.clamp(total_cls, min=1e-4)
             class_weights = 1.0 / cls_freq
+        # --align_agree_after：到该进度后，学生预测和计划 argmax（重加权前）不一致的样本不再做对齐（列置 0，不重新归一化）
+        #   分歧裁决分析：第 612 步之后分歧样本上学生判对的次数约为老师的 2 倍，无条件对齐等于让对的一方服从错的一方
+        if iter_num >= align_agree_iter:
+            gamma1 = gamma1 * (modelProb.argmax(dim=1) == gamma1.argmax(dim=0)).float().unsqueeze(0)
         gamma1 = gamma1 * class_weights.unsqueeze(1)
         loss_align = torch.sum(gamma1 * cost_matrix)
         # --align_view：学生在哪个视图上对齐老师的计划（老师的计划始终来自 CLIP 对 clip_img 的判断）
@@ -417,6 +423,8 @@ if __name__ == "__main__":
     parser.add_argument("--knn_self_after", default=1.0, type=float,
                         help="训练到该进度后，近邻平滑的概率改为 CLIP 与学生的加权平均（需要 --knn_k > 0）；1.0 = 不启用")
     parser.add_argument("--knn_self_w", default=0.5, type=float, help="--knn_self_after 启用后学生概率的权重")
+    parser.add_argument("--align_agree_after", default=1.0, type=float,
+                        help="训练到该进度后，只在学生预测 = 计划 argmax 的样本上做对齐；1.0 = 不启用（原方法）")
 
     args = parser.parse_args()
     assert not args.knn_mgva or args.knn_k > 0, "--knn_mgva 需要 --knn_k > 0"
