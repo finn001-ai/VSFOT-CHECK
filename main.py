@@ -85,6 +85,14 @@ def log_dynamics(path, iter_num, epoch, cur, prev, acc, lr):
     return row
 
 
+def save_samples(path, hist, iter_num, cur):
+    """--log_samples：把这次评估的逐样本预测追加到 hist，并整体写入 samples.npz（每行一次评估，列为目标域样本）"""
+    hist.setdefault("iter", []).append(iter_num)
+    for k in ("s_pred", "t_pred", "s_ent", "t_ent"):
+        hist.setdefault(k, []).append(cur[k].cpu().numpy())
+    np.savez_compressed(path, label=cur["label"].cpu().numpy(), **{k: np.array(v) for k, v in hist.items()})
+
+
 def init_feat_bank(feature_net, loader, device):
     """学生特征库：目标域每张图的学生特征（L2 归一化），用测试变换做一遍前向初始化"""
     # 遍历 DataLoader 会消耗随机数，先保存再恢复，保证之后的训练随机序列和不开 --knn_k 时完全一致
@@ -153,12 +161,19 @@ def start(args, target_dataloader, CLIP_model_raw):
     # 学习率调度仍按完整的 max_iter 计算，所以快照和完整训练时同一进度的状态一致
     snapshot_iters = {int(p * max_iter): p for p in args.snapshot_at}
     stop_iter = int(args.stop_at * max_iter)
+    # 共识塌缩实验：默认 1.0 = 永不触发（原方法）
+    freeze_teacher_iter = int(args.freeze_teacher_at * max_iter)    # 从这一步起老师（CLIP adapter）不再更新
+    knn_self_iter = int(args.knn_self_after * max_iter)              # 从这一步起近邻平滑混入学生概率
 
     # --log_dynamics：每个 epoch 记录学生 / 老师的准确率、一致率、翻转率、熵、伪标签准确率和各项损失（dynamics.csv）
     dyn_path = os.path.join(Project.root_path, "dynamics.csv")
     dyn_prev, dyn_acc = None, {}
+    # --log_samples：每次记录训练动态时，同时保存逐样本的学生 / 老师预测和熵（samples.npz，用于状态转移分析）
+    samples_path, samples_hist = os.path.join(Project.root_path, "samples.npz"), {}
     if args.log_dynamics:
         dyn_prev = eval_dynamics(feature_net, classifier_net, CLIP_model, cls_text, target_dataloader["test"], args.device)
+        if args.log_samples:
+            save_samples(samples_path, samples_hist, 0, dyn_prev)
         r = log_dynamics(dyn_path, 0, 0, dyn_prev, None, {}, model_optimizer.param_groups[1]["lr"])
         tqdm.write(f"[dyn] iter 0  学生 {r['student_acc']:.4f}  老师 {r['teacher_acc']:.4f}  一致率 {r['agree']:.3f}")
 
@@ -212,7 +227,16 @@ def start(args, target_dataloader, CLIP_model_raw):
             clipSim = vilImgFeat @ vilTextFeat.T                                    # [B, C]
             clipProb = torch.softmax(100*clipSim, dim = 1)                          # [B, C]
             # 对齐损失用的 CLIP 概率：开启 --knn_k 时换成学生特征空间近邻平滑后的版本（记忆库仍存原始 clipProb）
-            alignProb = knn_smooth(modelFeat, index_img, feat_bank, MB.vil_bank, clipProb, args.knn_k) if args.knn_k > 0 else clipProb
+            # --knn_self_after：到该进度后，平滑用的自身概率和近邻概率都换成 (1 - w) · CLIP + w · 学生（w = --knn_self_w），
+            #   让对齐目标在后期仍高于学生自己（静态诊断 p050：学生自身的近邻平滑比学生高 +1.0）；μ_p 仍取 CLIP 记忆库
+            if args.knn_k > 0 and iter_num >= knn_self_iter:
+                w = args.knn_self_w
+                alignProb = knn_smooth(modelFeat, index_img, feat_bank, (1 - w) * MB.vil_bank + w * MB.model_bank,
+                                       (1 - w) * clipProb + w * modelProb, args.knn_k)
+            elif args.knn_k > 0:
+                alignProb = knn_smooth(modelFeat, index_img, feat_bank, MB.vil_bank, clipProb, args.knn_k)
+            else:
+                alignProb = clipProb
 
             if args.align_mode == "ot":
                 gamma1 = getGamma(args, alignProb.T, vilMemoryMean, args.otReg)     # [C, B]
@@ -290,9 +314,14 @@ def start(args, target_dataloader, CLIP_model_raw):
         kl_div = torch.sum(soft_labels * kl_elementwise, dim=1)
 
         loss_vil = torch.mean(kl_div)
-        clip_optimizer.zero_grad()
-        loss_vil.backward()
-        clip_optimizer.step()
+        # --freeze_teacher_at：到该进度后老师不再更新（仍计算 loss_vil 用于记录）
+        if iter_num < freeze_teacher_iter:
+            clip_optimizer.zero_grad()
+            loss_vil.backward()
+            clip_optimizer.step()
+        elif iter_num == freeze_teacher_iter:
+            Project.log(f"Teacher frozen at iter {iter_num}", is_print=False)
+            tqdm.write(f"Teacher frozen at iter {iter_num}")
 
         ################################################
         model_LR.step()
@@ -328,6 +357,8 @@ def start(args, target_dataloader, CLIP_model_raw):
             tqdm.write(f"[eval] iter {iter_num:4d}/{max_iter}  acc {acc_total:.4f}  best {best_acc:.4f}")
             if args.log_dynamics:
                 cur = eval_dynamics(feature_net, classifier_net, CLIP_model, cls_text, target_dataloader["test"], args.device)
+                if args.log_samples:
+                    save_samples(samples_path, samples_hist, iter_num, cur)
                 r = log_dynamics(dyn_path, iter_num, now_epoch, cur, dyn_prev, dyn_acc, model_optimizer.param_groups[1]["lr"])
                 tqdm.write(f"[dyn] iter {iter_num:4d}  老师 {r['teacher_acc']:.4f}  一致率 {r['agree']:.3f}  两边都错 {r['both_wrong']}  "
                            f"翻转 学生 {r['student_flip']:.3f} / 老师 {r['teacher_flip']:.3f}  伪标签 {r['pl_gamma_acc']:.4f}")
@@ -379,8 +410,18 @@ if __name__ == "__main__":
     parser.add_argument("--knn_mgva", action="store_true",
                         help="MGVA 中老师学的学生概率也做同样的近邻平滑（需要 --knn_k > 0）")
 
+    parser.add_argument("--log_samples", action="store_true",
+                        help="和 --log_dynamics 一起用：每次记录时另存逐样本的学生 / 老师预测和熵到 samples.npz；不影响训练过程")
+    parser.add_argument("--freeze_teacher_at", default=1.0, type=float,
+                        help="训练到该进度后不再更新老师（CLIP adapter），如 0.2；1.0 = 不冻结（原方法）")
+    parser.add_argument("--knn_self_after", default=1.0, type=float,
+                        help="训练到该进度后，近邻平滑的概率改为 CLIP 与学生的加权平均（需要 --knn_k > 0）；1.0 = 不启用")
+    parser.add_argument("--knn_self_w", default=0.5, type=float, help="--knn_self_after 启用后学生概率的权重")
+
     args = parser.parse_args()
     assert not args.knn_mgva or args.knn_k > 0, "--knn_mgva 需要 --knn_k > 0"
+    assert not args.log_samples or args.log_dynamics, "--log_samples 需要 --log_dynamics"
+    assert args.knn_self_after >= 1.0 or args.knn_k > 0, "--knn_self_after 需要 --knn_k > 0"
 
     seed_everything(args.seed)
 

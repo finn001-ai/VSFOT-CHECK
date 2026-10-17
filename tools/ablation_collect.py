@@ -88,7 +88,7 @@ def main():
         })
         dst = os.path.join(a.out, "logs", mode, os.path.basename(run_dir))
         os.makedirs(dst, exist_ok=True)
-        for name in ("run_log.txt", "argsInfo.txt", "ModellineAcc.txt", ".done", "dynamics.csv"):
+        for name in ("run_log.txt", "argsInfo.txt", "ModellineAcc.txt", ".done", "dynamics.csv", "samples.npz"):
             if os.path.isfile(os.path.join(run_dir, name)):
                 shutil.copy(os.path.join(run_dir, name), os.path.join(dst, name))
 
