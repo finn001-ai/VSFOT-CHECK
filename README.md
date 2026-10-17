@@ -13,6 +13,7 @@
 > | 5. 强视图对齐实验 | `bash scripts/run_strong.sh` | `--align_view strong/both`（Noisy Student），和消融基线一起汇总 |
 > | 6. 训练动态诊断 | `bash scripts/run_dynamics.sh` | `--log_dynamics`：每个 epoch 记录老师准确率、一致率、翻转率、伪标签准确率等，汇总表末尾附动态表 |
 > | 7. 共识塌缩实验 | `bash scripts/run_collapse.sh` | `--log_samples`（逐样本预测）、`--freeze_teacher_at`（冻结老师）、`--knn_self_after`（近邻平滑混入学生概率）、`--adaptercount 12`；另附 `collapse.md` 状态转移分析 |
+> | 诊断：分歧裁决 | `bash scripts/run_arbitration.sh` | 不训练；读取上一行保存的 `samples.npz`，检验无标签信号能否在师生分歧时分辨谁对；结果打包到 `runs/arbitration_results/<日期>.zip` |
 > | 诊断：训练快照 + OT 指标 | `bash scripts/run_diag.sh` | 结果打包到 `runs/diag_results/<日期>.zip` |
 > | 诊断：μ_p 消融等 | `bash scripts/run_diag_quick.sh` | 需要先跑上一行的快照 |
 > | 诊断：μ_p 估计器对比 | `bash scripts/run_diag_mu.sh` | 需要先跑 `run_diag.sh` 的快照；结果打包到 `runs/diag_mu_results/<日期>.zip` |
