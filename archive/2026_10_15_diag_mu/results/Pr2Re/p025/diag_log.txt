@@ -1,0 +1,437 @@
+[快照] process/DiagFix/Pr2Re/snapshot_p025.pt  progress=0.25  iter=680/2720
+CLIP 相似度:   0%|                                                                 | 0/35 [00:00<?, ?it/s]CLIP 相似度:   3%|█▋                                                       | 1/35 [00:03<01:46,  3.12s/it]CLIP 相似度:   6%|███▎                                                     | 2/35 [00:03<00:47,  1.44s/it]CLIP 相似度:  11%|██████▌                                                  | 4/35 [00:03<00:17,  1.73it/s]CLIP 相似度:  14%|████████▏                                                | 5/35 [00:06<00:35,  1.18s/it]CLIP 相似度:  23%|█████████████                                            | 8/35 [00:07<00:20,  1.32it/s]CLIP 相似度:  26%|██████████████▋                                          | 9/35 [00:09<00:25,  1.04it/s]CLIP 相似度:  34%|███████████████████▏                                    | 12/35 [00:11<00:19,  1.20it/s]CLIP 相似度:  37%|████████████████████▊                                   | 13/35 [00:11<00:16,  1.33it/s]CLIP 相似度:  40%|██████████████████████▍                                 | 14/35 [00:12<00:15,  1.35it/s]CLIP 相似度:  43%|████████████████████████                                | 15/35 [00:12<00:12,  1.63it/s]CLIP 相似度:  46%|█████████████████████████▌                              | 16/35 [00:13<00:15,  1.24it/s]CLIP 相似度:  49%|███████████████████████████▏                            | 17/35 [00:14<00:15,  1.14it/s]CLIP 相似度:  51%|████████████████████████████▊                           | 18/35 [00:15<00:11,  1.47it/s]CLIP 相似度:  57%|████████████████████████████████                        | 20/35 [00:16<00:11,  1.27it/s]CLIP 相似度:  60%|█████████████████████████████████▌                      | 21/35 [00:17<00:10,  1.32it/s]CLIP 相似度:  63%|███████████████████████████████████▏                    | 22/35 [00:18<00:10,  1.19it/s]CLIP 相似度:  69%|██████████████████████████████████████▍                 | 24/35 [00:19<00:08,  1.37it/s]CLIP 相似度:  71%|████████████████████████████████████████                | 25/35 [00:20<00:07,  1.26it/s]CLIP 相似度:  74%|█████████████████████████████████████████▌              | 26/35 [00:21<00:06,  1.33it/s]CLIP 相似度:  80%|████████████████████████████████████████████▊           | 28/35 [00:22<00:04,  1.47it/s]CLIP 相似度:  83%|██████████████████████████████████████████████▍         | 29/35 [00:23<00:04,  1.28it/s]CLIP 相似度:  86%|████████████████████████████████████████████████        | 30/35 [00:24<00:03,  1.28it/s]CLIP 相似度:  91%|███████████████████████████████████████████████████▏    | 32/35 [00:24<00:01,  1.84it/s]CLIP 相似度:  94%|████████████████████████████████████████████████████▊   | 33/35 [00:26<00:01,  1.20it/s]CLIP 相似度:  97%|██████████████████████████████████████████████████████▍ | 34/35 [00:27<00:00,  1.23it/s]CLIP 相似度: 100%|████████████████████████████████████████████████████████| 35/35 [00:27<00:00,  1.27it/s]
+seed 0:   0%|                                                                      | 0/68 [00:00<?, ?it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 0:   1%|▉                                                             | 1/68 [00:02<02:41,  2.40s/it]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 0:   3%|█▊                                                            | 2/68 [00:02<01:15,  1.15s/it]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 0:   4%|██▋                                                           | 3/68 [00:02<00:48,  1.34it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 0:   6%|███▋                                                          | 4/68 [00:03<00:35,  1.80it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 0:   7%|████▌                                                         | 5/68 [00:04<00:45,  1.39it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 0:   9%|█████▍                                                        | 6/68 [00:04<00:35,  1.76it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 0:  10%|██████▍                                                       | 7/68 [00:04<00:28,  2.13it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 0:  12%|███████▎                                                      | 8/68 [00:05<00:24,  2.46it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 0:  13%|████████▏                                                     | 9/68 [00:05<00:21,  2.74it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 0:  15%|████████▉                                                    | 10/68 [00:05<00:19,  2.99it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 0:  16%|█████████▊                                                   | 11/68 [00:05<00:17,  3.19it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 0:  18%|██████████▊                                                  | 12/68 [00:06<00:16,  3.33it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 0:  19%|███████████▋                                                 | 13/68 [00:06<00:15,  3.44it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 0:  21%|████████████▌                                                | 14/68 [00:06<00:15,  3.49it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 0:  22%|█████████████▍                                               | 15/68 [00:06<00:14,  3.56it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 0:  24%|██████████████▎                                              | 16/68 [00:07<00:14,  3.62it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 0:  25%|███████████████▎                                             | 17/68 [00:08<00:32,  1.59it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 0:  26%|████████████████▏                                            | 18/68 [00:08<00:25,  1.93it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 0:  28%|█████████████████                                            | 19/68 [00:09<00:21,  2.26it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 0:  29%|█████████████████▉                                           | 20/68 [00:09<00:18,  2.56it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 0:  31%|██████████████████▊                                          | 21/68 [00:10<00:23,  2.04it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 0:  32%|███████████████████▋                                         | 22/68 [00:10<00:19,  2.36it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 0:  34%|████████████████████▋                                        | 23/68 [00:10<00:16,  2.66it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 0:  35%|█████████████████████▌                                       | 24/68 [00:10<00:15,  2.91it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 0:  37%|██████████████████████▍                                      | 25/68 [00:11<00:23,  1.81it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 0:  38%|███████████████████████▎                                     | 26/68 [00:12<00:19,  2.14it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 0:  40%|████████████████████████▏                                    | 27/68 [00:12<00:16,  2.45it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 0:  41%|█████████████████████████                                    | 28/68 [00:12<00:14,  2.73it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 0:  43%|██████████████████████████                                   | 29/68 [00:13<00:13,  2.97it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 0:  44%|██████████████████████████▉                                  | 30/68 [00:13<00:14,  2.64it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 0:  46%|███████████████████████████▊                                 | 31/68 [00:13<00:12,  2.90it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 0:  47%|████████████████████████████▋                                | 32/68 [00:14<00:11,  3.11it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 0:  49%|█████████████████████████████▌                               | 33/68 [00:15<00:17,  1.97it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 0:  50%|██████████████████████████████▌                              | 34/68 [00:15<00:15,  2.26it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 0:  51%|███████████████████████████████▍                             | 35/68 [00:15<00:12,  2.56it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 0:  53%|████████████████████████████████▎                            | 36/68 [00:15<00:11,  2.83it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 0:  54%|█████████████████████████████████▏                           | 37/68 [00:17<00:20,  1.49it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 0:  56%|██████████████████████████████████                           | 38/68 [00:17<00:16,  1.82it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 0:  57%|██████████████████████████████████▉                          | 39/68 [00:17<00:13,  2.15it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 0:  59%|███████████████████████████████████▉                         | 40/68 [00:18<00:11,  2.46it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 0:  60%|████████████████████████████████████▊                        | 41/68 [00:18<00:11,  2.36it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 0:  62%|█████████████████████████████████████▋                       | 42/68 [00:18<00:09,  2.65it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 0:  63%|██████████████████████████████████████▌                      | 43/68 [00:19<00:08,  2.91it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 0:  65%|███████████████████████████████████████▍                     | 44/68 [00:19<00:07,  3.11it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 0:  66%|████████████████████████████████████████▎                    | 45/68 [00:20<00:12,  1.89it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 0:  68%|█████████████████████████████████████████▎                   | 46/68 [00:20<00:09,  2.22it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 0:  69%|██████████████████████████████████████████▏                  | 47/68 [00:20<00:08,  2.51it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 0:  71%|███████████████████████████████████████████                  | 48/68 [00:21<00:07,  2.79it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 0:  72%|███████████████████████████████████████████▉                 | 49/68 [00:21<00:07,  2.50it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 0:  74%|████████████████████████████████████████████▊                | 50/68 [00:21<00:06,  2.78it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 0:  75%|█████████████████████████████████████████████▊               | 51/68 [00:22<00:05,  3.02it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 0:  76%|██████████████████████████████████████████████▋              | 52/68 [00:22<00:05,  3.19it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 0:  78%|███████████████████████████████████████████████▌             | 53/68 [00:23<00:07,  1.90it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 0:  79%|████████████████████████████████████████████████▍            | 54/68 [00:23<00:06,  2.22it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 0:  81%|█████████████████████████████████████████████████▎           | 55/68 [00:24<00:05,  2.52it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 0:  82%|██████████████████████████████████████████████████▏          | 56/68 [00:24<00:04,  2.79it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 0:  84%|███████████████████████████████████████████████████▏         | 57/68 [00:25<00:05,  1.92it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 0:  85%|████████████████████████████████████████████████████         | 58/68 [00:25<00:04,  2.25it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 0:  87%|████████████████████████████████████████████████████▉        | 59/68 [00:25<00:03,  2.55it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 0:  88%|█████████████████████████████████████████████████████▊       | 60/68 [00:25<00:02,  2.82it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 0:  90%|██████████████████████████████████████████████████████▋      | 61/68 [00:26<00:03,  1.95it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 0:  91%|███████████████████████████████████████████████████████▌     | 62/68 [00:27<00:02,  2.26it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 0:  93%|████████████████████████████████████████████████████████▌    | 63/68 [00:27<00:01,  2.57it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 0:  94%|█████████████████████████████████████████████████████████▍   | 64/68 [00:27<00:01,  2.84it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 0:  96%|██████████████████████████████████████████████████████████▎  | 65/68 [00:29<00:02,  1.36it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 0:  97%|███████████████████████████████████████████████████████████▏ | 66/68 [00:29<00:01,  1.68it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 0:  99%|████████████████████████████████████████████████████████████ | 67/68 [00:29<00:00,  2.01it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 0: 100%|█████████████████████████████████████████████████████████████| 68/68 [00:30<00:00,  2.34it/s]seed 0: 100%|█████████████████████████████████████████████████████████████| 68/68 [00:30<00:00,  2.25it/s]
+seed 1:   0%|                                                                      | 0/68 [00:00<?, ?it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 1:   1%|▉                                                             | 1/68 [00:02<02:37,  2.34s/it]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 1:   3%|█▊                                                            | 2/68 [00:02<01:14,  1.12s/it]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 1:   4%|██▋                                                           | 3/68 [00:02<00:47,  1.36it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 1:   6%|███▋                                                          | 4/68 [00:03<00:35,  1.81it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 1:   7%|████▌                                                         | 5/68 [00:03<00:36,  1.74it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 1:   9%|█████▍                                                        | 6/68 [00:04<00:29,  2.12it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 1:  10%|██████▍                                                       | 7/68 [00:04<00:24,  2.47it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 1:  12%|███████▎                                                      | 8/68 [00:04<00:21,  2.77it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 1:  13%|████████▏                                                     | 9/68 [00:05<00:26,  2.25it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 1:  15%|████████▉                                                    | 10/68 [00:05<00:22,  2.57it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 1:  16%|█████████▊                                                   | 11/68 [00:05<00:24,  2.36it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 1:  18%|██████████▊                                                  | 12/68 [00:06<00:21,  2.66it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 1:  19%|███████████▋                                                 | 13/68 [00:06<00:26,  2.09it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 1:  21%|████████████▌                                                | 14/68 [00:07<00:22,  2.41it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 1:  22%|█████████████▍                                               | 15/68 [00:07<00:19,  2.70it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 1:  24%|██████████████▎                                              | 16/68 [00:07<00:17,  2.94it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 1:  25%|███████████████▎                                             | 17/68 [00:08<00:20,  2.50it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 1:  26%|████████████████▏                                            | 18/68 [00:08<00:18,  2.77it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 1:  28%|█████████████████                                            | 19/68 [00:08<00:17,  2.87it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 1:  29%|█████████████████▉                                           | 20/68 [00:09<00:15,  3.08it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 1:  31%|██████████████████▊                                          | 21/68 [00:09<00:17,  2.62it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 1:  32%|███████████████████▋                                         | 22/68 [00:09<00:15,  2.89it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 1:  34%|████████████████████▋                                        | 23/68 [00:10<00:19,  2.34it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 1:  35%|█████████████████████▌                                       | 24/68 [00:10<00:16,  2.63it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 1:  37%|██████████████████████▍                                      | 25/68 [00:11<00:14,  2.89it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 1:  38%|███████████████████████▎                                     | 26/68 [00:11<00:13,  3.11it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 1:  40%|████████████████████████▏                                    | 27/68 [00:11<00:15,  2.57it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 1:  41%|█████████████████████████                                    | 28/68 [00:12<00:14,  2.84it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 1:  43%|██████████████████████████                                   | 29/68 [00:12<00:17,  2.26it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 1:  44%|██████████████████████████▉                                  | 30/68 [00:13<00:14,  2.56it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 1:  46%|███████████████████████████▊                                 | 31/68 [00:13<00:13,  2.83it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 1:  47%|████████████████████████████▋                                | 32/68 [00:13<00:11,  3.06it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 1:  49%|█████████████████████████████▌                               | 33/68 [00:15<00:23,  1.49it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 1:  50%|██████████████████████████████▌                              | 34/68 [00:15<00:18,  1.81it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 1:  51%|███████████████████████████████▍                             | 35/68 [00:15<00:15,  2.15it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 1:  53%|████████████████████████████████▎                            | 36/68 [00:15<00:13,  2.46it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 1:  54%|█████████████████████████████████▏                           | 37/68 [00:16<00:13,  2.25it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 1:  56%|██████████████████████████████████                           | 38/68 [00:16<00:11,  2.56it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 1:  57%|██████████████████████████████████▉                          | 39/68 [00:16<00:10,  2.83it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 1:  59%|███████████████████████████████████▉                         | 40/68 [00:17<00:09,  3.03it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 1:  60%|████████████████████████████████████▊                        | 41/68 [00:17<00:10,  2.70it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 1:  62%|█████████████████████████████████████▋                       | 42/68 [00:17<00:08,  2.95it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 1:  63%|██████████████████████████████████████▌                      | 43/68 [00:18<00:07,  3.15it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 1:  65%|███████████████████████████████████████▍                     | 44/68 [00:18<00:07,  3.28it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 1:  66%|████████████████████████████████████████▎                    | 45/68 [00:18<00:06,  3.41it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 1:  68%|█████████████████████████████████████████▎                   | 46/68 [00:19<00:06,  3.48it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 1:  69%|██████████████████████████████████████████▏                  | 47/68 [00:19<00:05,  3.56it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 1:  71%|███████████████████████████████████████████                  | 48/68 [00:19<00:05,  3.62it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 1:  72%|███████████████████████████████████████████▉                 | 49/68 [00:20<00:06,  2.77it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 1:  74%|████████████████████████████████████████████▊                | 50/68 [00:20<00:05,  3.00it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 1:  75%|█████████████████████████████████████████████▊               | 51/68 [00:21<00:07,  2.41it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 1:  76%|██████████████████████████████████████████████▋              | 52/68 [00:21<00:05,  2.69it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 1:  78%|███████████████████████████████████████████████▌             | 53/68 [00:21<00:05,  2.92it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 1:  79%|████████████████████████████████████████████████▍            | 54/68 [00:21<00:04,  3.12it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 1:  81%|█████████████████████████████████████████████████▎           | 55/68 [00:23<00:08,  1.60it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 1:  82%|██████████████████████████████████████████████████▏          | 56/68 [00:23<00:06,  1.94it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 1:  84%|███████████████████████████████████████████████████▏         | 57/68 [00:23<00:04,  2.27it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 1:  85%|████████████████████████████████████████████████████         | 58/68 [00:23<00:03,  2.56it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 1:  87%|████████████████████████████████████████████████████▉        | 59/68 [00:25<00:05,  1.63it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 1:  88%|█████████████████████████████████████████████████████▊       | 60/68 [00:25<00:04,  1.96it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 1:  90%|██████████████████████████████████████████████████████▋      | 61/68 [00:25<00:03,  2.28it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 1:  91%|███████████████████████████████████████████████████████▌     | 62/68 [00:25<00:02,  2.59it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 1:  93%|████████████████████████████████████████████████████████▌    | 63/68 [00:27<00:03,  1.64it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 1:  94%|█████████████████████████████████████████████████████████▍   | 64/68 [00:27<00:02,  1.98it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 1:  96%|██████████████████████████████████████████████████████████▎  | 65/68 [00:27<00:01,  2.31it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 1:  97%|███████████████████████████████████████████████████████████▏ | 66/68 [00:27<00:00,  2.60it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 1:  99%|████████████████████████████████████████████████████████████ | 67/68 [00:28<00:00,  1.71it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 1: 100%|█████████████████████████████████████████████████████████████| 68/68 [00:29<00:00,  2.04it/s]seed 1: 100%|█████████████████████████████████████████████████████████████| 68/68 [00:29<00:00,  2.33it/s]
+seed 2:   0%|                                                                      | 0/68 [00:00<?, ?it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 2:   1%|▉                                                             | 1/68 [00:02<02:16,  2.04s/it]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 2:   3%|█▊                                                            | 2/68 [00:02<01:13,  1.11s/it]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 2:   4%|██▋                                                           | 3/68 [00:02<00:47,  1.38it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 2:   6%|███▋                                                          | 4/68 [00:03<00:34,  1.84it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 2:   7%|████▌                                                         | 5/68 [00:03<00:35,  1.80it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 2:   9%|█████▍                                                        | 6/68 [00:03<00:28,  2.16it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 2:  10%|██████▍                                                       | 7/68 [00:04<00:24,  2.47it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 2:  12%|███████▎                                                      | 8/68 [00:04<00:21,  2.76it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 2:  13%|████████▏                                                     | 9/68 [00:05<00:28,  2.08it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 2:  15%|████████▉                                                    | 10/68 [00:05<00:24,  2.40it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 2:  16%|█████████▊                                                   | 11/68 [00:05<00:22,  2.58it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 2:  18%|██████████▊                                                  | 12/68 [00:06<00:19,  2.84it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 2:  19%|███████████▋                                                 | 13/68 [00:07<00:30,  1.81it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 2:  21%|████████████▌                                                | 14/68 [00:07<00:25,  2.13it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 2:  22%|█████████████▍                                               | 15/68 [00:07<00:21,  2.42it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 2:  24%|██████████████▎                                              | 16/68 [00:07<00:19,  2.70it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 2:  25%|███████████████▎                                             | 17/68 [00:08<00:22,  2.28it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 2:  26%|████████████████▏                                            | 18/68 [00:08<00:19,  2.59it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 2:  28%|█████████████████                                            | 19/68 [00:09<00:23,  2.09it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 2:  29%|█████████████████▉                                           | 20/68 [00:09<00:19,  2.41it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 2:  31%|██████████████████▊                                          | 21/68 [00:09<00:17,  2.70it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 2:  32%|███████████████████▋                                         | 22/68 [00:10<00:15,  2.94it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 2:  34%|████████████████████▋                                        | 23/68 [00:11<00:24,  1.81it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 2:  35%|█████████████████████▌                                       | 24/68 [00:11<00:20,  2.14it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 2:  37%|██████████████████████▍                                      | 25/68 [00:11<00:17,  2.46it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 2:  38%|███████████████████████▎                                     | 26/68 [00:12<00:15,  2.74it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 2:  40%|████████████████████████▏                                    | 27/68 [00:12<00:15,  2.57it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 2:  41%|█████████████████████████                                    | 28/68 [00:12<00:14,  2.83it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 2:  43%|██████████████████████████                                   | 29/68 [00:13<00:12,  3.05it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 2:  44%|██████████████████████████▉                                  | 30/68 [00:13<00:11,  3.23it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 2:  46%|███████████████████████████▊                                 | 31/68 [00:13<00:14,  2.47it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 2:  47%|████████████████████████████▋                                | 32/68 [00:14<00:13,  2.75it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 2:  49%|█████████████████████████████▌                               | 33/68 [00:14<00:11,  2.99it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 2:  50%|██████████████████████████████▌                              | 34/68 [00:14<00:11,  3.05it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 2:  51%|███████████████████████████████▍                             | 35/68 [00:15<00:11,  2.99it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 2:  53%|████████████████████████████████▎                            | 36/68 [00:15<00:10,  3.18it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 2:  54%|█████████████████████████████████▏                           | 37/68 [00:15<00:09,  3.33it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 2:  56%|██████████████████████████████████                           | 38/68 [00:16<00:16,  1.87it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 2:  57%|██████████████████████████████████▉                          | 39/68 [00:17<00:13,  2.20it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 2:  59%|███████████████████████████████████▉                         | 40/68 [00:17<00:11,  2.51it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 2:  60%|████████████████████████████████████▊                        | 41/68 [00:17<00:09,  2.78it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 2:  62%|█████████████████████████████████████▋                       | 42/68 [00:18<00:13,  1.93it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 2:  63%|██████████████████████████████████████▌                      | 43/68 [00:18<00:11,  2.25it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 2:  65%|███████████████████████████████████████▍                     | 44/68 [00:19<00:09,  2.56it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 2:  66%|████████████████████████████████████████▎                    | 45/68 [00:19<00:08,  2.82it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 2:  68%|█████████████████████████████████████████▎                   | 46/68 [00:20<00:11,  1.93it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 2:  69%|██████████████████████████████████████████▏                  | 47/68 [00:20<00:09,  2.25it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 2:  71%|███████████████████████████████████████████                  | 48/68 [00:20<00:07,  2.56it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 2:  72%|███████████████████████████████████████████▉                 | 49/68 [00:21<00:06,  2.82it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 2:  74%|████████████████████████████████████████████▊                | 50/68 [00:21<00:06,  2.59it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 2:  75%|█████████████████████████████████████████████▊               | 51/68 [00:21<00:05,  2.85it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 2:  76%|██████████████████████████████████████████████▋              | 52/68 [00:21<00:05,  3.07it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 2:  78%|███████████████████████████████████████████████▌             | 53/68 [00:22<00:04,  3.23it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 2:  79%|████████████████████████████████████████████████▍            | 54/68 [00:23<00:06,  2.18it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 2:  81%|█████████████████████████████████████████████████▎           | 55/68 [00:23<00:05,  2.39it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 2:  82%|██████████████████████████████████████████████████▏          | 56/68 [00:23<00:04,  2.68it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 2:  84%|███████████████████████████████████████████████████▏         | 57/68 [00:23<00:03,  2.92it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 2:  85%|████████████████████████████████████████████████████         | 58/68 [00:24<00:05,  1.94it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 2:  87%|████████████████████████████████████████████████████▉        | 59/68 [00:25<00:03,  2.27it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 2:  88%|█████████████████████████████████████████████████████▊       | 60/68 [00:25<00:03,  2.56it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 2:  90%|██████████████████████████████████████████████████████▋      | 61/68 [00:25<00:02,  2.83it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 2:  91%|███████████████████████████████████████████████████████▌     | 62/68 [00:26<00:02,  2.06it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 2:  93%|████████████████████████████████████████████████████████▌    | 63/68 [00:26<00:02,  2.38it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 2:  94%|█████████████████████████████████████████████████████████▍   | 64/68 [00:26<00:01,  2.68it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 2:  96%|██████████████████████████████████████████████████████████▎  | 65/68 [00:27<00:01,  2.92it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 2:  97%|███████████████████████████████████████████████████████████▏ | 66/68 [00:28<00:01,  1.86it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 2:  99%|████████████████████████████████████████████████████████████ | 67/68 [00:28<00:00,  2.18it/s]/output/.pylibs/lib/python3.10/site-packages/ot/unbalanced/_sinkhorn.py:736: UserWarning: If reg_type = entropy, then the matrix c is overwritten by the one matrix.
+  warnings.warn(
+seed 2: 100%|█████████████████████████████████████████████████████████████| 68/68 [00:28<00:00,  2.50it/s]seed 2: 100%|█████████████████████████████████████████████████████████████| 68/68 [00:28<00:00,  2.36it/s]
+
+==============================================================================
+Product->Real World  progress=0.25  批数=204  CLIP准确率=0.9078  模型准确率=0.9098  批内类数=40.1
+  bank → true_batch 差距 = 0.0738
+  变体              计划准确率  真类质量  缺席质量  μ L1     有效类数  恢复比例
+  bank              0.9087    0.8816   0.0557   0.2069  40.3188   0.0000
+  true_batch        0.9825    0.9812   0.0000   0.0000  35.8135   1.0000
+  uniform           0.5987    0.5764   0.3828   0.7656  65.0000   -4.2025
+  clip_now          0.9081    0.8839   0.0539   0.2027  40.0672   -0.0083
+  model             0.9088    0.8805   0.0621   0.2107  41.3669   0.0010
+  clip_model_avg    0.9117    0.8842   0.0580   0.2028  40.9628   0.0405
+  sharp_T0.5        0.9078    0.9037   0.0397   0.1714  37.1585   -0.0125
+  sharp_T0.25       0.9078    0.9075   0.0377   0.1661  36.3443   -0.0125
+  present_tau0.3    0.9076    0.8866   0.0298   0.1989  35.9339   -0.0145
+  present_tau0.5    0.9043    0.8839   0.0244   0.2054  35.0059   -0.0592
+  em_rowsum1        0.9087    0.8816   0.0557   0.2069  40.3188   0.0000
+  em_rowsum3        0.9087    0.8816   0.0557   0.2069  40.3188   0.0000
+  em_mix1           0.9054    0.8911   0.0302   0.1938  36.0267   -0.0447
+  em_mix3           0.9022    0.8904   0.0244   0.1977  34.7303   -0.0883
+  uot_m0.1          0.9076    0.9080   0.0376   0.1652  36.2434   -0.0145
+  uot_m1.0          0.9081    0.9054   0.0413   0.1682  37.3837   -0.0083
+  半松弛 OT 实现：{'uot_m0.1': {'pot': 204, 'own': 0}, 'uot_m1.0': {'pot': 204, 'own': 0}}   present 退回 bank 次数：{'present_tau0.3': 0, 'present_tau0.5': 0}
+==============================================================================
+结果已保存到 diag_mu_results/2026_10_15/Pr2Re/p025

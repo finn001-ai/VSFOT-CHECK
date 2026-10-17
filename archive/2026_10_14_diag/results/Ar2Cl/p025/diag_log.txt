@@ -1,0 +1,426 @@
+[快照] process/Diag/Ar2Cl/snapshot_p025.pt  progress=0.25  iter=680/2720
+[任务] Art -> Clipart  C=65  B=64  otReg=0.2  bn_mode=train
+CLIP 相似度:   0%|                                                | 0/35 [00:00<?, ?it/s]CLIP 相似度:   3%|█▏                                      | 1/35 [00:01<00:51,  1.52s/it]CLIP 相似度:   9%|███▍                                    | 3/35 [00:01<00:14,  2.22it/s]CLIP 相似度:  14%|█████▋                                  | 5/35 [00:02<00:13,  2.29it/s]CLIP 相似度:  20%|████████                                | 7/35 [00:02<00:07,  3.51it/s]CLIP 相似度:  26%|██████████▎                             | 9/35 [00:03<00:08,  2.96it/s]CLIP 相似度:  31%|████████████▎                          | 11/35 [00:03<00:05,  4.04it/s]CLIP 相似度:  37%|██████████████▍                        | 13/35 [00:04<00:07,  3.05it/s]CLIP 相似度:  43%|████████████████▋                      | 15/35 [00:04<00:04,  4.00it/s]CLIP 相似度:  49%|██████████████████▉                    | 17/35 [00:05<00:05,  3.38it/s]CLIP 相似度:  54%|█████████████████████▏                 | 19/35 [00:05<00:03,  4.32it/s]CLIP 相似度:  60%|███████████████████████▍               | 21/35 [00:06<00:04,  3.29it/s]CLIP 相似度:  66%|█████████████████████████▋             | 23/35 [00:06<00:02,  4.22it/s]CLIP 相似度:  71%|███████████████████████████▊           | 25/35 [00:07<00:02,  3.41it/s]CLIP 相似度:  77%|██████████████████████████████         | 27/35 [00:07<00:01,  4.36it/s]CLIP 相似度:  83%|████████████████████████████████▎      | 29/35 [00:08<00:01,  3.36it/s]CLIP 相似度:  89%|██████████████████████████████████▌    | 31/35 [00:08<00:00,  4.32it/s]CLIP 相似度:  94%|████████████████████████████████████▊  | 33/35 [00:09<00:00,  3.43it/s]CLIP 相似度: 100%|███████████████████████████████████████| 35/35 [00:09<00:00,  4.45it/s]CLIP 相似度: 100%|███████████████████████████████████████| 35/35 [00:10<00:00,  3.46it/s]
+[参考] 当前 CLIP 全量零样本准确率: 0.6609
+seed 0:   0%|                                                     | 0/68 [00:00<?, ?it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 0:   1%|▋                                            | 1/68 [00:02<03:10,  2.84s/it]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 0:   3%|█▎                                           | 2/68 [00:03<01:39,  1.50s/it]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 0:   4%|█▉                                           | 3/68 [00:03<01:09,  1.08s/it]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 0:   6%|██▋                                          | 4/68 [00:04<00:56,  1.14it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 0:   7%|███▎                                         | 5/68 [00:05<00:48,  1.31it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 0:   9%|███▉                                         | 6/68 [00:05<00:42,  1.47it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 0:  10%|████▋                                        | 7/68 [00:06<00:39,  1.54it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 0:  12%|█████▎                                       | 8/68 [00:06<00:37,  1.61it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 0:  13%|█████▉                                       | 9/68 [00:07<00:35,  1.66it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 0:  15%|██████▍                                     | 10/68 [00:07<00:35,  1.63it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 0:  16%|███████                                     | 11/68 [00:08<00:35,  1.62it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 0:  18%|███████▊                                    | 12/68 [00:09<00:33,  1.67it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 0:  19%|████████▍                                   | 13/68 [00:09<00:33,  1.63it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 0:  21%|█████████                                   | 14/68 [00:10<00:33,  1.63it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 0:  22%|█████████▋                                  | 15/68 [00:10<00:31,  1.68it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 0:  24%|██████████▎                                 | 16/68 [00:11<00:29,  1.75it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 0:  25%|███████████                                 | 17/68 [00:12<00:28,  1.79it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 0:  26%|███████████▋                                | 18/68 [00:12<00:28,  1.78it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 0:  28%|████████████▎                               | 19/68 [00:13<00:27,  1.75it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 0:  29%|████████████▉                               | 20/68 [00:13<00:27,  1.75it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 0:  31%|█████████████▌                              | 21/68 [00:14<00:26,  1.75it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 0:  32%|██████████████▏                             | 22/68 [00:14<00:26,  1.76it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 0:  34%|██████████████▉                             | 23/68 [00:15<00:25,  1.76it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 0:  35%|███████████████▌                            | 24/68 [00:16<00:25,  1.76it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 0:  37%|████████████████▏                           | 25/68 [00:16<00:23,  1.81it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 0:  38%|████████████████▊                           | 26/68 [00:17<00:23,  1.80it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 0:  40%|█████████████████▍                          | 27/68 [00:17<00:22,  1.84it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 0:  41%|██████████████████                          | 28/68 [00:18<00:22,  1.81it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 0:  43%|██████████████████▊                         | 29/68 [00:18<00:21,  1.80it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 0:  44%|███████████████████▍                        | 30/68 [00:19<00:21,  1.80it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 0:  46%|████████████████████                        | 31/68 [00:19<00:20,  1.79it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 0:  47%|████████████████████▋                       | 32/68 [00:20<00:20,  1.78it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 0:  49%|█████████████████████▎                      | 33/68 [00:21<00:19,  1.78it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 0:  50%|██████████████████████                      | 34/68 [00:21<00:19,  1.77it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 0:  51%|██████████████████████▋                     | 35/68 [00:22<00:18,  1.80it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 0:  53%|███████████████████████▎                    | 36/68 [00:22<00:17,  1.81it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 0:  54%|███████████████████████▉                    | 37/68 [00:23<00:17,  1.80it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 0:  56%|████████████████████████▌                   | 38/68 [00:23<00:16,  1.79it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 0:  57%|█████████████████████████▏                  | 39/68 [00:24<00:16,  1.78it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 0:  59%|█████████████████████████▉                  | 40/68 [00:24<00:15,  1.77it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 0:  60%|██████████████████████████▌                 | 41/68 [00:25<00:15,  1.77it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 0:  62%|███████████████████████████▏                | 42/68 [00:26<00:14,  1.77it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 0:  63%|███████████████████████████▊                | 43/68 [00:26<00:14,  1.77it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 0:  65%|████████████████████████████▍               | 44/68 [00:27<00:13,  1.77it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 0:  66%|█████████████████████████████               | 45/68 [00:27<00:12,  1.77it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 0:  68%|█████████████████████████████▊              | 46/68 [00:28<00:12,  1.77it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 0:  69%|██████████████████████████████▍             | 47/68 [00:28<00:11,  1.78it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 0:  71%|███████████████████████████████             | 48/68 [00:29<00:11,  1.77it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 0:  72%|███████████████████████████████▋            | 49/68 [00:29<00:10,  1.82it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 0:  74%|████████████████████████████████▎           | 50/68 [00:30<00:09,  1.81it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 0:  75%|█████████████████████████████████           | 51/68 [00:31<00:09,  1.80it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 0:  76%|█████████████████████████████████▋          | 52/68 [00:31<00:08,  1.83it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 0:  78%|██████████████████████████████████▎         | 53/68 [00:32<00:08,  1.81it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 0:  79%|██████████████████████████████████▉         | 54/68 [00:32<00:07,  1.81it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 0:  81%|███████████████████████████████████▌        | 55/68 [00:33<00:07,  1.82it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 0:  82%|████████████████████████████████████▏       | 56/68 [00:33<00:06,  1.80it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 0:  84%|████████████████████████████████████▉       | 57/68 [00:34<00:06,  1.79it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 0:  85%|█████████████████████████████████████▌      | 58/68 [00:34<00:05,  1.81it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 0:  87%|██████████████████████████████████████▏     | 59/68 [00:35<00:04,  1.80it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 0:  88%|██████████████████████████████████████▊     | 60/68 [00:36<00:04,  1.79it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 0:  90%|███████████████████████████████████████▍    | 61/68 [00:36<00:03,  1.79it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 0:  91%|████████████████████████████████████████    | 62/68 [00:37<00:03,  1.79it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 0:  93%|████████████████████████████████████████▊   | 63/68 [00:37<00:02,  1.79it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 0:  94%|█████████████████████████████████████████▍  | 64/68 [00:38<00:02,  1.79it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 0:  96%|██████████████████████████████████████████  | 65/68 [00:38<00:01,  1.79it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 0:  97%|██████████████████████████████████████████▋ | 66/68 [00:39<00:01,  1.83it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 0:  99%|███████████████████████████████████████████▎| 67/68 [00:39<00:00,  1.82it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 0: 100%|████████████████████████████████████████████| 68/68 [00:40<00:00,  1.81it/s]seed 0: 100%|████████████████████████████████████████████| 68/68 [00:40<00:00,  1.68it/s]
+seed 1:   0%|                                                     | 0/68 [00:00<?, ?it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 1:   1%|▋                                            | 1/68 [00:01<01:33,  1.40s/it]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 1:   3%|█▎                                           | 2/68 [00:01<01:00,  1.09it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 1:   4%|█▉                                           | 3/68 [00:02<00:49,  1.31it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 1:   6%|██▋                                          | 4/68 [00:03<00:45,  1.41it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 1:   7%|███▎                                         | 5/68 [00:03<00:42,  1.48it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 1:   9%|███▉                                         | 6/68 [00:04<00:40,  1.54it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 1:  10%|████▋                                        | 7/68 [00:05<00:39,  1.56it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 1:  12%|█████▎                                       | 8/68 [00:05<00:37,  1.58it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 1:  13%|█████▉                                       | 9/68 [00:06<00:35,  1.65it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 1:  15%|██████▍                                     | 10/68 [00:06<00:35,  1.63it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 1:  16%|███████                                     | 11/68 [00:07<00:34,  1.66it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 1:  18%|███████▊                                    | 12/68 [00:07<00:33,  1.67it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 1:  19%|████████▍                                   | 13/68 [00:08<00:33,  1.65it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 1:  21%|█████████                                   | 14/68 [00:09<00:33,  1.64it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 1:  22%|█████████▋                                  | 15/68 [00:09<00:31,  1.67it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 1:  24%|██████████▎                                 | 16/68 [00:10<00:29,  1.74it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 1:  25%|███████████                                 | 17/68 [00:10<00:29,  1.74it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 1:  26%|███████████▋                                | 18/68 [00:11<00:27,  1.80it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 1:  28%|████████████▎                               | 19/68 [00:11<00:27,  1.79it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 1:  29%|████████████▉                               | 20/68 [00:12<00:26,  1.78it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 1:  31%|█████████████▌                              | 21/68 [00:13<00:26,  1.78it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 1:  32%|██████████████▏                             | 22/68 [00:13<00:25,  1.82it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 1:  34%|██████████████▉                             | 23/68 [00:14<00:24,  1.81it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 1:  35%|███████████████▌                            | 24/68 [00:14<00:24,  1.82it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 1:  37%|████████████████▏                           | 25/68 [00:15<00:23,  1.80it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 1:  38%|████████████████▊                           | 26/68 [00:15<00:23,  1.79it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 1:  40%|█████████████████▍                          | 27/68 [00:16<00:22,  1.79it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 1:  41%|██████████████████                          | 28/68 [00:16<00:22,  1.77it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 1:  43%|██████████████████▊                         | 29/68 [00:17<00:21,  1.77it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 1:  44%|███████████████████▍                        | 30/68 [00:18<00:20,  1.82it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 1:  46%|████████████████████                        | 31/68 [00:18<00:20,  1.80it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 1:  47%|████████████████████▋                       | 32/68 [00:19<00:19,  1.82it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 1:  49%|█████████████████████▎                      | 33/68 [00:19<00:19,  1.80it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 1:  50%|██████████████████████                      | 34/68 [00:20<00:18,  1.80it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 1:  51%|██████████████████████▋                     | 35/68 [00:20<00:18,  1.79it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 1:  53%|███████████████████████▎                    | 36/68 [00:21<00:17,  1.79it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 1:  54%|███████████████████████▉                    | 37/68 [00:21<00:16,  1.83it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 1:  56%|████████████████████████▌                   | 38/68 [00:22<00:16,  1.81it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 1:  57%|█████████████████████████▏                  | 39/68 [00:23<00:16,  1.80it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 1:  59%|█████████████████████████▉                  | 40/68 [00:23<00:15,  1.78it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 1:  60%|██████████████████████████▌                 | 41/68 [00:24<00:15,  1.78it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 1:  62%|███████████████████████████▏                | 42/68 [00:24<00:14,  1.78it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 1:  63%|███████████████████████████▊                | 43/68 [00:25<00:14,  1.78it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 1:  65%|████████████████████████████▍               | 44/68 [00:25<00:13,  1.77it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 1:  66%|█████████████████████████████               | 45/68 [00:26<00:12,  1.78it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 1:  68%|█████████████████████████████▊              | 46/68 [00:27<00:12,  1.77it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 1:  69%|██████████████████████████████▍             | 47/68 [00:27<00:11,  1.77it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 1:  71%|███████████████████████████████             | 48/68 [00:28<00:11,  1.77it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 1:  72%|███████████████████████████████▋            | 49/68 [00:28<00:10,  1.78it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 1:  74%|████████████████████████████████▎           | 50/68 [00:29<00:09,  1.82it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 1:  75%|█████████████████████████████████           | 51/68 [00:29<00:09,  1.81it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 1:  76%|█████████████████████████████████▋          | 52/68 [00:30<00:08,  1.80it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 1:  78%|██████████████████████████████████▎         | 53/68 [00:30<00:08,  1.82it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 1:  79%|██████████████████████████████████▉         | 54/68 [00:31<00:07,  1.86it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 1:  81%|███████████████████████████████████▌        | 55/68 [00:31<00:07,  1.83it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 1:  82%|████████████████████████████████████▏       | 56/68 [00:32<00:06,  1.81it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 1:  84%|████████████████████████████████████▉       | 57/68 [00:33<00:06,  1.79it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 1:  85%|█████████████████████████████████████▌      | 58/68 [00:33<00:05,  1.79it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 1:  87%|██████████████████████████████████████▏     | 59/68 [00:34<00:05,  1.78it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 1:  88%|██████████████████████████████████████▊     | 60/68 [00:34<00:04,  1.78it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 1:  90%|███████████████████████████████████████▍    | 61/68 [00:35<00:03,  1.78it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 1:  91%|████████████████████████████████████████    | 62/68 [00:35<00:03,  1.78it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 1:  93%|████████████████████████████████████████▊   | 63/68 [00:36<00:02,  1.78it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 1:  94%|█████████████████████████████████████████▍  | 64/68 [00:37<00:02,  1.78it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 1:  96%|██████████████████████████████████████████  | 65/68 [00:37<00:01,  1.78it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 1:  97%|██████████████████████████████████████████▋ | 66/68 [00:38<00:01,  1.78it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 1:  99%|███████████████████████████████████████████▎| 67/68 [00:38<00:00,  1.78it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 1: 100%|████████████████████████████████████████████| 68/68 [00:39<00:00,  1.77it/s]seed 1: 100%|████████████████████████████████████████████| 68/68 [00:39<00:00,  1.73it/s]
+seed 2:   0%|                                                     | 0/68 [00:00<?, ?it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 2:   1%|▋                                            | 1/68 [00:01<01:36,  1.44s/it]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 2:   3%|█▎                                           | 2/68 [00:02<01:01,  1.07it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 2:   4%|█▉                                           | 3/68 [00:02<00:51,  1.27it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 2:   6%|██▋                                          | 4/68 [00:03<00:45,  1.39it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 2:   7%|███▎                                         | 5/68 [00:03<00:42,  1.49it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 2:   9%|███▉                                         | 6/68 [00:04<00:40,  1.53it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 2:  10%|████▋                                        | 7/68 [00:05<00:39,  1.56it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 2:  12%|█████▎                                       | 8/68 [00:05<00:37,  1.61it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 2:  13%|█████▉                                       | 9/68 [00:06<00:35,  1.66it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 2:  15%|██████▍                                     | 10/68 [00:06<00:33,  1.74it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 2:  16%|███████                                     | 11/68 [00:07<00:32,  1.75it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 2:  18%|███████▊                                    | 12/68 [00:07<00:31,  1.76it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 2:  19%|████████▍                                   | 13/68 [00:08<00:31,  1.76it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 2:  21%|█████████                                   | 14/68 [00:08<00:30,  1.79it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 2:  22%|█████████▋                                  | 15/68 [00:09<00:29,  1.79it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 2:  24%|██████████▎                                 | 16/68 [00:10<00:29,  1.79it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 2:  25%|███████████                                 | 17/68 [00:10<00:28,  1.77it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 2:  26%|███████████▋                                | 18/68 [00:11<00:27,  1.82it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 2:  28%|████████████▎                               | 19/68 [00:11<00:26,  1.85it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 2:  29%|████████████▉                               | 20/68 [00:12<00:26,  1.82it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 2:  31%|█████████████▌                              | 21/68 [00:12<00:26,  1.80it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 2:  32%|██████████████▏                             | 22/68 [00:13<00:25,  1.79it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 2:  34%|██████████████▉                             | 23/68 [00:13<00:25,  1.79it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 2:  35%|███████████████▌                            | 24/68 [00:14<00:24,  1.78it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 2:  37%|████████████████▏                           | 25/68 [00:15<00:24,  1.78it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 2:  38%|████████████████▊                           | 26/68 [00:15<00:23,  1.78it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 2:  40%|█████████████████▍                          | 27/68 [00:16<00:23,  1.78it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 2:  41%|██████████████████                          | 28/68 [00:16<00:22,  1.78it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 2:  43%|██████████████████▊                         | 29/68 [00:17<00:21,  1.77it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 2:  44%|███████████████████▍                        | 30/68 [00:17<00:21,  1.77it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 2:  46%|████████████████████                        | 31/68 [00:18<00:20,  1.81it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 2:  47%|████████████████████▋                       | 32/68 [00:18<00:20,  1.80it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 2:  49%|█████████████████████▎                      | 33/68 [00:19<00:19,  1.84it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 2:  50%|██████████████████████                      | 34/68 [00:20<00:18,  1.82it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 2:  51%|██████████████████████▋                     | 35/68 [00:20<00:18,  1.81it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 2:  53%|███████████████████████▎                    | 36/68 [00:21<00:17,  1.80it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 2:  54%|███████████████████████▉                    | 37/68 [00:21<00:17,  1.79it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 2:  56%|████████████████████████▌                   | 38/68 [00:22<00:16,  1.77it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 2:  57%|█████████████████████████▏                  | 39/68 [00:22<00:16,  1.77it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 2:  59%|█████████████████████████▉                  | 40/68 [00:23<00:15,  1.76it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 2:  60%|██████████████████████████▌                 | 41/68 [00:23<00:14,  1.81it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 2:  62%|███████████████████████████▏                | 42/68 [00:24<00:14,  1.80it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 2:  63%|███████████████████████████▊                | 43/68 [00:25<00:13,  1.79it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 2:  65%|████████████████████████████▍               | 44/68 [00:25<00:13,  1.79it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 2:  66%|█████████████████████████████               | 45/68 [00:26<00:12,  1.78it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 2:  68%|█████████████████████████████▊              | 46/68 [00:26<00:12,  1.82it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 2:  69%|██████████████████████████████▍             | 47/68 [00:27<00:11,  1.80it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 2:  71%|███████████████████████████████             | 48/68 [00:27<00:11,  1.79it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 2:  72%|███████████████████████████████▋            | 49/68 [00:28<00:10,  1.82it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 2:  74%|████████████████████████████████▎           | 50/68 [00:28<00:09,  1.83it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 2:  75%|█████████████████████████████████           | 51/68 [00:29<00:09,  1.81it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 2:  76%|█████████████████████████████████▋          | 52/68 [00:30<00:08,  1.80it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 2:  78%|██████████████████████████████████▎         | 53/68 [00:30<00:08,  1.79it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 2:  79%|██████████████████████████████████▉         | 54/68 [00:31<00:07,  1.78it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 2:  81%|███████████████████████████████████▌        | 55/68 [00:31<00:07,  1.78it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 2:  82%|████████████████████████████████████▏       | 56/68 [00:32<00:06,  1.82it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 2:  84%|████████████████████████████████████▉       | 57/68 [00:32<00:06,  1.80it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 2:  85%|█████████████████████████████████████▌      | 58/68 [00:33<00:05,  1.80it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 2:  87%|██████████████████████████████████████▏     | 59/68 [00:34<00:05,  1.78it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 2:  88%|██████████████████████████████████████▊     | 60/68 [00:34<00:04,  1.83it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 2:  90%|███████████████████████████████████████▍    | 61/68 [00:35<00:03,  1.81it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 2:  91%|████████████████████████████████████████    | 62/68 [00:35<00:03,  1.80it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 2:  93%|████████████████████████████████████████▊   | 63/68 [00:36<00:02,  1.80it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 2:  94%|█████████████████████████████████████████▍  | 64/68 [00:36<00:02,  1.79it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 2:  96%|██████████████████████████████████████████  | 65/68 [00:37<00:01,  1.79it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 2:  97%|██████████████████████████████████████████▋ | 66/68 [00:37<00:01,  1.74it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 2:  99%|███████████████████████████████████████████▎| 67/68 [00:38<00:00,  1.75it/s]/output/.pylibs/lib/python3.10/site-packages/ot/bregman/_sinkhorn.py:666: UserWarning: Sinkhorn did not converge. You might want to increase the number of iterations `numItermax` or the regularization parameter `reg`.
+  warnings.warn(
+seed 2: 100%|████████████████████████████████████████████| 68/68 [00:39<00:00,  1.73it/s]seed 2: 100%|████████████████████████████████████████████| 68/68 [00:39<00:00,  1.73it/s]
+
+======================================================================
+Art->Clipart  progress=0.25  批数=204  用时=133.8s
+  批内平均类数: 39.6（中位 40）/ 65
+  准确率  CLIP=0.6606  模型=0.6593  计划argmax=0.6509
+  Sinkhorn 行边际L1误差=5.48e-08（以此判断收敛）  POT未收敛警告比例=1.00
+  [H1] 缺席质量  均匀μ=0.391  实际μ=0.166  重加权后=0.179  -> 弱? 前:False 后:False
+  [H2] 翻倍范围最大变化(pp)  joint 尺度=3.875612745098045  ε=0.16084558823529216  -> 弱? False
+  [H3] 代价比  Cv=1.178  Cv重加权=1.252  Cm熵解=1.005  -> 弱? False
+======================================================================
+结果已保存到 diag_results/2026_10_14/Ar2Cl/p025

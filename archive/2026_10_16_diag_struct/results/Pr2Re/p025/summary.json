@@ -1,0 +1,175 @@
+{
+  "snapshot": "runs/DiagFix/Pr2Re/snapshot_p025.pt",
+  "progress": 0.25,
+  "task": "Product->Real World",
+  "N": 4357,
+  "complementarity": {
+    "clip_acc": 0.9077346324920654,
+    "model_acc": 0.909111738204956,
+    "both_ok": 3892,
+    "clip_only": 63,
+    "model_only": 69,
+    "neither": 333,
+    "oracle_either": 0.9235712289810181,
+    "agree_rate": 0.9612118005752563,
+    "acc_when_agree": 0.9293218851089478,
+    "clip_acc_when_disagree": 0.37278106808662415,
+    "model_acc_when_disagree": 0.4082840383052826
+  },
+  "variants": [
+    {
+      "variant": "knn_clip_k5",
+      "group": "knn",
+      "acc": 0.9084231853485107,
+      "d_clip": 0.0006885528564453125,
+      "d_model": -0.0006885528564453125,
+      "rescue": 82,
+      "break": 79
+    },
+    {
+      "variant": "knn_clip_s_k5",
+      "group": "knn",
+      "acc": 0.9134725332260132,
+      "d_clip": 0.005737900733947754,
+      "d_model": 0.004360795021057129,
+      "rescue": 56,
+      "break": 31
+    },
+    {
+      "variant": "knn_model_k5",
+      "group": "ref",
+      "acc": 0.9098002910614014,
+      "d_clip": 0.0020656585693359375,
+      "d_model": 0.0006885528564453125,
+      "rescue": 91,
+      "break": 82
+    },
+    {
+      "variant": "ref_knn_clipfeat_k5",
+      "group": "ref",
+      "acc": 0.8799632787704468,
+      "d_clip": -0.027771353721618652,
+      "d_model": -0.029148459434509277,
+      "rescue": 76,
+      "break": 197
+    },
+    {
+      "variant": "knn_clip_k10",
+      "group": "knn",
+      "acc": 0.911406934261322,
+      "d_clip": 0.003672301769256592,
+      "d_model": 0.002295196056365967,
+      "rescue": 87,
+      "break": 71
+    },
+    {
+      "variant": "knn_clip_s_k10",
+      "group": "knn",
+      "acc": 0.9141610860824585,
+      "d_clip": 0.006426453590393066,
+      "d_model": 0.005049347877502441,
+      "rescue": 60,
+      "break": 32
+    },
+    {
+      "variant": "knn_model_k10",
+      "group": "ref",
+      "acc": 0.9098002910614014,
+      "d_clip": 0.0020656585693359375,
+      "d_model": 0.0006885528564453125,
+      "rescue": 90,
+      "break": 81
+    },
+    {
+      "variant": "ref_knn_clipfeat_k10",
+      "group": "ref",
+      "acc": 0.8834059834480286,
+      "d_clip": -0.024328649044036865,
+      "d_model": -0.02570575475692749,
+      "rescue": 84,
+      "break": 190
+    },
+    {
+      "variant": "knn_clip_k20",
+      "group": "knn",
+      "acc": 0.9077346324920654,
+      "d_clip": 0.0,
+      "d_model": -0.001377105712890625,
+      "rescue": 84,
+      "break": 84
+    },
+    {
+      "variant": "knn_clip_s_k20",
+      "group": "knn",
+      "acc": 0.9127839803695679,
+      "d_clip": 0.005049347877502441,
+      "d_model": 0.0036722421646118164,
+      "rescue": 53,
+      "break": 31
+    },
+    {
+      "variant": "knn_model_k20",
+      "group": "ref",
+      "acc": 0.9086527228355408,
+      "d_clip": 0.0009180903434753418,
+      "d_model": -0.0004590153694152832,
+      "rescue": 85,
+      "break": 81
+    },
+    {
+      "variant": "ref_knn_clipfeat_k20",
+      "group": "ref",
+      "acc": 0.8776680827140808,
+      "d_clip": -0.03006654977798462,
+      "d_model": -0.031443655490875244,
+      "rescue": 75,
+      "break": 206
+    },
+    {
+      "variant": "proto_clip_it0",
+      "group": "proto",
+      "acc": 0.9077346324920654,
+      "d_clip": 0.0,
+      "d_model": -0.001377105712890625,
+      "rescue": 80,
+      "break": 80
+    },
+    {
+      "variant": "proto_clip_it1",
+      "group": "proto",
+      "acc": 0.9072756171226501,
+      "d_clip": -0.0004590153694152832,
+      "d_model": -0.0018361210823059082,
+      "rescue": 84,
+      "break": 86
+    },
+    {
+      "variant": "proto_model_it0",
+      "group": "ref",
+      "acc": 0.9086527228355408,
+      "d_clip": 0.0009180903434753418,
+      "d_model": -0.0004590153694152832,
+      "rescue": 84,
+      "break": 80
+    },
+    {
+      "variant": "proto_model_it1",
+      "group": "ref",
+      "acc": 0.9075051546096802,
+      "d_clip": -0.0002294778823852539,
+      "d_model": -0.001606583595275879,
+      "rescue": 86,
+      "break": 87
+    },
+    {
+      "variant": "gamma2",
+      "group": "gamma2",
+      "acc": 0.9054840803146362,
+      "d_clip": -0.0022977590560913086,
+      "d_model": -0.003599882125854492,
+      "rescue": 59,
+      "break": 69
+    }
+  ],
+  "elapsed_sec": 33.7
+}
