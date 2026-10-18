@@ -20,6 +20,7 @@
 > | 诊断：锁死错误结构 | `bash scripts/run_locked.sh` | 不训练；用表示诊断的快照，描述锁死错误的类对集中度、吞并类、真实类在概率中的名次、子簇；结果打印在「汇总开始 / 汇总结束」之间 |
 > | 诊断：类边际纠正 | `bash scripts/run_marginal.sh` | 不训练；用表示诊断的快照，在全数据集上按不同类边际（预测 / 平均概率 / 收缩 / 均匀 / 真实上界）用 Sinkhorn 重新分配；结果打印在「汇总开始 / 汇总结束」之间 |
 > | 9. 对齐权重曲线 | `bash scripts/run_weight.sh` | `--align_weight const / cap`（`--align_cap`）：对齐权重一直为 1，或交叉点后保持 0.2；底座 ot_knn10_both；结果打印在「汇总开始 / 汇总结束」之间 |
+> | 10. 对齐权重上限验证 | `bash scripts/run_cap.sh` | cap02 在 Pr→Cl / Re→Cl 的泛化、cap 0.1 / 0.3 / 0.5 扫描、Ar→Cl 上 cap02 与底座各 2 个额外种子；结果打印在「汇总开始 / 汇总结束」之间 |
 > | 诊断：训练快照 + OT 指标 | `bash scripts/run_diag.sh` | 结果打包到 `runs/diag_results/<日期>.zip` |
 > | 诊断：μ_p 消融等 | `bash scripts/run_diag_quick.sh` | 需要先跑上一行的快照 |
 > | 诊断：μ_p 估计器对比 | `bash scripts/run_diag_mu.sh` | 需要先跑 `run_diag.sh` 的快照；结果打包到 `runs/diag_mu_results/<日期>.zip` |
