@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+# =============================================================================
+# 无标签重拟合分类头（2026-10-18）：表示诊断发现骨干特征的线性探针 85.0、学生只有 76.1；
+#   这里不用标签、在冻结特征上重新拟合线性头（学生 / 老师 / 一致样本 / 高置信样本等作标签），看能拿回多少
+#   不训练网络，直接用 scripts/run_repr.sh 保存的快照；每个快照几分钟
+#
+# 在 Jupyter 里运行（项目根目录下）：
+#   !bash scripts/run_head.sh
+# 把「汇总开始」到「汇总结束」之间贴回即可，不用下载
+# =============================================================================
+
+set -euo pipefail
+
+PYTHON="python -u"
+GPU=0
+SNAP_DIR="runs/ReprDiag/both_snap/Ar2Cl_s42"     # 和 scripts/run_repr.sh 一致
+STAGES=(p000 p025 p050 p075 p100)
+RESULT_DIR="runs/head_results/$(date +%Y_%m_%d)_Ar2Cl_both_snap"
+
+cd "$(dirname "$0")/.."    # 切换到项目根目录（本脚本在 scripts/ 下）
+mkdir -p "$RESULT_DIR"
+for stage in "${STAGES[@]}"; do
+    snap="$SNAP_DIR/snapshot_${stage}.pt"
+    out="$RESULT_DIR/$stage"
+    if [ ! -f "$snap" ]; then
+        echo "[错误] 找不到快照 ${snap}，请先运行 bash scripts/run_repr.sh"; exit 1
+    fi
+    if [ -f "$out/result.json" ]; then
+        echo "==> ${stage}：已有结果，跳过"
+        continue
+    fi
+    echo "==> 分析 ${stage}"
+    mkdir -p "$out"
+    $PYTHON tools/diag_head.py --snapshot "$snap" --out "$out" --device "$GPU" 2>&1 | tee "$out/diag_log.txt"
+done
+
+$PYTHON tools/diag_head.py --collect "$RESULT_DIR"

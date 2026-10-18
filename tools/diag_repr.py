@@ -155,15 +155,12 @@ def sub_acc(pred, y, mask):
 # =============================================================================
 # 单个快照
 # =============================================================================
-def run(cli):
-    os.makedirs(cli.out, exist_ok=True)
-    device = f"cuda:{cli.device}"
-    t0 = time.time()
-
-    snap = torch.load(cli.snapshot, map_location="cpu", weights_only=False)
+def extract(snapshot, device, num_workers=4):
+    """读取快照，全数据集一次前向（BN eval、测试变换）：返回 (快照, {层: 特征 [N, d]}, 学生概率, 老师概率, 标签)，按记忆库下标排序"""
+    snap = torch.load(snapshot, map_location="cpu", weights_only=False)
     A = Namespace(**snap["args"])
     C = A.class_num
-    print(f"[快照] {cli.snapshot}  progress={snap['progress']}  iter={snap['iter']}/{snap['max_iter']}")
+    print(f"[快照] {snapshot}  progress={snap['progress']}  iter={snap['iter']}/{snap['max_iter']}")
 
     raw_clip, preprocess = clip.load(A.clipVersion, device=device)
     clip_model = clipAdapter(raw_clip, device, adapterCount=A.adaptercount)
@@ -186,7 +183,7 @@ def run(cli):
         text = clip.tokenize([f"a photo of a {c}" for c in A.class_info]).to(device)
         tf = clip_model.encode_text(text)
         tf = tf / tf.norm(dim=-1, keepdim=True)
-        for item in tqdm(DataLoader(dataset, batch_size=128, num_workers=cli.num_workers), desc="前向"):
+        for item in tqdm(DataLoader(dataset, batch_size=128, num_workers=num_workers), desc="前向"):
             h = bb[:7](item["img"].to(device).float())                 # 到 layer3
             feats["layer3"].append(h.mean(dim=(2, 3)))
             p = bb[7:](h).flatten(1)                                    # layer4 + avgpool
@@ -202,6 +199,15 @@ def run(cli):
     order = torch.cat(idxs).argsort()
     feats = {k: torch.cat(v)[order].float() for k, v in feats.items()}
     q_m, q_v, y = torch.cat(q_m)[order], torch.cat(q_v)[order], torch.cat(ys)[order]
+    return snap, feats, q_m, q_v, y
+
+
+def run(cli):
+    os.makedirs(cli.out, exist_ok=True)
+    device = f"cuda:{cli.device}"
+    t0 = time.time()
+    snap, feats, q_m, q_v, y = extract(cli.snapshot, device, cli.num_workers)
+    C, N = q_m.shape[1], q_m.shape[0]
 
     s_pred, t_pred = q_m.argmax(1), q_v.argmax(1)
     s_ok, t_ok = s_pred == y, t_pred == y
