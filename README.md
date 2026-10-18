@@ -17,6 +17,7 @@
 > | 诊断：交叉点检测 | `bash scripts/run_crossover.sh` | 不训练；读取同样的 `samples.npz`，检验不用标签能否判断当前阶段学生和老师谁更准、估出的交叉点离真实值多远；汇总打印在「汇总开始 / 汇总结束」之间 |
 > | 8. 表示诊断 | `bash scripts/run_repr.sh` | 训练一次 ot_knn10_both 并存 5 个快照（不开诊断记录），`tools/diag_repr.py` 比较各层的有效秩、线性探针、近邻标签准确率（普通 / 互近邻 / CSLS）和无标签近邻信号；全部结果打印在「汇总开始 / 汇总结束」之间 |
 > | 诊断：无标签重拟合分类头 | `bash scripts/run_head.sh` | 不训练网络；用上一行的快照，在冻结特征上用学生 / 老师 / 一致样本 / 高置信样本作标签重拟合线性头，看能拿回探针（85）和学生（76）之间多少；结果打印在「汇总开始 / 汇总结束」之间 |
+> | 诊断：锁死错误结构 | `bash scripts/run_locked.sh` | 不训练；用表示诊断的快照，描述锁死错误的类对集中度、吞并类、真实类在概率中的名次、子簇；结果打印在「汇总开始 / 汇总结束」之间 |
 > | 诊断：训练快照 + OT 指标 | `bash scripts/run_diag.sh` | 结果打包到 `runs/diag_results/<日期>.zip` |
 > | 诊断：μ_p 消融等 | `bash scripts/run_diag_quick.sh` | 需要先跑上一行的快照 |
 > | 诊断：μ_p 估计器对比 | `bash scripts/run_diag_mu.sh` | 需要先跑 `run_diag.sh` 的快照；结果打包到 `runs/diag_mu_results/<日期>.zip` |
