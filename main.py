@@ -286,6 +286,13 @@ def start(args, target_dataloader, CLIP_model_raw):
 
         progress = iter_num / max_iter
         weight_align = min(1.0, progress * 2)  # [1 -> 2]
+        # --align_weight：对齐权重的进度曲线。ramp = 原方法（0 → 1，进度 0.5 加满）；
+        #   const = 一直为 1（老师更准的早期就全力对齐）；cap = min(2·进度, --align_cap)（交叉点之后不再加大老师 → 学生的力度）
+        #   依据：老师只在前约 7.5% 的训练里比学生准，而原方法的权重在那之后才加满；锁死样本 220 → 645 → 854 → 970（p000 / 025 / 050 / 100）
+        if args.align_weight == "const":
+            weight_align = 1.0
+        elif args.align_weight == "cap":
+            weight_align = min(args.align_cap, progress * 2)
 
         loss1 = args.weightalign * weight_align * loss_align + \
                 args.weightctr * loss_ctr + \
@@ -425,6 +432,9 @@ if __name__ == "__main__":
     parser.add_argument("--knn_self_w", default=0.5, type=float, help="--knn_self_after 启用后学生概率的权重")
     parser.add_argument("--align_agree_after", default=1.0, type=float,
                         help="训练到该进度后，只在学生预测 = 计划 argmax 的样本上做对齐；1.0 = 不启用（原方法）")
+    parser.add_argument("--align_weight", default="ramp", type=str, choices=["ramp", "const", "cap"],
+                        help="对齐权重的进度曲线：ramp = min(1, 2·进度)（原方法）；const = 1；cap = min(--align_cap, 2·进度)")
+    parser.add_argument("--align_cap", default=0.2, type=float, help="--align_weight cap 的上限（0.2 = 进度 0.1 时达到）")
 
     args = parser.parse_args()
     assert not args.knn_mgva or args.knn_k > 0, "--knn_mgva 需要 --knn_k > 0"
