@@ -102,6 +102,7 @@ done
 
 echo "==> 汇总"
 echo "============================== 汇总开始（把这一段完整贴回）=============================="
+mkdir -p "$RESULT_DIR"
 $PYTHON tools/ablation_collect.py --process "runs/$TRAIN_ROOT" --out "$RESULT_DIR" | grep -v "^已打包" > "$RESULT_DIR/collect.txt"
 sed -n '/^## 跨任务对照/,/^## 分解/p' "$RESULT_DIR/collect.txt"
 echo "训练曲线（只列 cap02 与本轮的组）："
