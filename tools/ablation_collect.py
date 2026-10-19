@@ -147,6 +147,25 @@ def main():
     def diff(task, x, y):
         vx, vy = last5_mean.get((task, x)), last5_mean.get((task, y))
         return f"{(vx - vy) * 100:+.2f}" if vx is not None and vy is not None else "-"
+    # ---------------- 跨任务对照：每个模式一行，缺的任务记为 -；附 COSMO（论文表 1，ViT-B/32）作参照 ----------------
+    COSMO = {"Ar2Cl": 76.4, "Ar2Pr": 92.6, "Ar2Re": 92.0, "Cl2Ar": 85.7, "Cl2Pr": 92.4, "Cl2Re": 91.9,
+             "Pr2Ar": 84.3, "Pr2Cl": 76.1, "Pr2Re": 91.7, "Re2Ar": 85.6, "Re2Cl": 75.5, "Re2Pr": 92.7}
+    if len(tasks) > 1:
+        all_modes = sorted({m for _, m in group})
+        md += [f"## 跨任务对照（最后 5 次评估均值，多个种子取均值；平均只对该模式已有的任务求）", "",
+               "| 模式 | " + " | ".join(tasks) + " | 任务数 | 平均 | 同任务上 COSMO 平均 |", "|---|" + "---|" * (len(tasks) + 3)]
+        for m in all_modes:
+            have = [t for t in tasks if last5_mean.get((t, m)) is not None]
+            cells = [f"{last5_mean[(t, m)] * 100:.2f}" if t in have else "-" for t in tasks]
+            avg = statistics.mean(last5_mean[(t, m)] for t in have) * 100
+            cos = [COSMO[t] for t in have if t in COSMO]
+            md.append(f"| {m} | " + " | ".join(cells) + f" | {len(have)} | {avg:.2f} | "
+                      + (f"{statistics.mean(cos):.2f}" if len(cos) == len(have) else "-") + " |")
+        if all(t in COSMO for t in tasks):
+            md.append("| COSMO（参照） | " + " | ".join(f"{COSMO[t]:.1f}" for t in tasks) + f" | {len(tasks)} | "
+                      f"{statistics.mean(COSMO[t] for t in tasks):.2f} | - |")
+        md.append("")
+
     md += ["## 分解（最后 5 次评估均值之差，百分点）", "",
            "| 任务 | 锐化（sharp − soft） | 边际投影（ot − sharp） | OT 总增益（ot − soft） | ot − hard |",
            "|---|---|---|---|---|"]

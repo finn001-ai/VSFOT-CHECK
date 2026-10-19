@@ -117,6 +117,29 @@ def knn_smooth(feat, index, feat_bank, prob_bank, own_prob, k):
     return (own_prob + prob_bank[neighbors].mean(dim=1)) / 2
 
 
+def init_src_bank(feature_net, classifier_net, loader, device):
+    """--src_expert：冻结源模型（训练开始前的学生）在目标域每张图上的概率，用测试变换做一遍前向；之后不再更新"""
+    rng_state = get_rng_state()          # 同 init_feat_bank：恢复随机数，训练随机序列不受影响
+    feature_net.eval()
+    bank = None
+    with torch.no_grad():
+        for item in tqdm(loader, desc="init src bank"):
+            prob = torch.softmax(classifier_net(feature_net(item["img"].to(device).float())), dim=1)
+            if bank is None:
+                bank = torch.zeros(len(loader.dataset), prob.shape[1], device=device)
+            bank[item["index"].to(device)] = prob
+    set_rng_state(rng_state)
+    return bank
+
+
+def entropy_poe(p, q):
+    """按熵加权的专家乘积（COSMO / ProDe 的源模型去噪思路）：r ∝ p^a · q^(1-a)，a = e^{-H(p)} / (e^{-H(p)} + e^{-H(q)})，熵越小权重越大"""
+    hp = -(p * torch.log(p + 1e-8)).sum(1, keepdim=True)
+    hq = -(q * torch.log(q + 1e-8)).sum(1, keepdim=True)
+    a = torch.exp(-hp) / (torch.exp(-hp) + torch.exp(-hq))
+    return torch.softmax(a * torch.log(p + 1e-8) + (1 - a) * torch.log(q + 1e-8), dim=1)
+
+
 def start(args, target_dataloader, CLIP_model_raw):
     network = torch.load(os.path.join("runs", args.sourceStorage, f"Source_{args.source.lower()}", "Source.pt"), weights_only=False)
     feature_net = resnet(res_name=args.arch).to(args.device)
@@ -147,6 +170,8 @@ def start(args, target_dataloader, CLIP_model_raw):
         MB.initialize(target_dataloader["test"], CLIP_model_raw, feature_net, classifier_net, cls_text_features, args.device)
     # --knn_k > 0：在学生特征空间里用近邻平滑伪标签（静态诊断见 archive/2026_10_16_diag_struct）
     feat_bank = init_feat_bank(feature_net, target_dataloader["test"], args.device) if args.knn_k > 0 else None
+    # --src_expert：冻结源模型的概率库（必须在训练开始前、学生还等于源模型时计算）
+    src_bank = init_src_bank(feature_net, classifier_net, target_dataloader["test"], args.device) if args.src_expert else None
     SSNB = SimSiam(feature_net).to(args.device)
 
     model_cm, model_oa, model_aa, model_class_acc = modeleval(args, feature_net, classifier_net, target_dataloader["test"])
@@ -165,7 +190,8 @@ def start(args, target_dataloader, CLIP_model_raw):
     # 共识塌缩实验：默认 1.0 = 永不触发（原方法）
     freeze_teacher_iter = int(args.freeze_teacher_at * max_iter)    # 从这一步起老师（CLIP adapter）不再更新
     knn_self_iter = int(args.knn_self_after * max_iter)              # 从这一步起近邻平滑混入学生概率
-    align_agree_iter = int(args.align_agree_after * max_iter)        # 从这一步起只在师生一致的样本上做对齐
+    align_agree_iter = int(args.align_agree_after * max_iter)
+    src_expert_iter = int(args.src_expert_until * max_iter)         # --src_expert：到这一步为止对齐目标混入冻结源模型        # 从这一步起只在师生一致的样本上做对齐
 
     # --log_dynamics：每个 epoch 记录学生 / 老师的准确率、一致率、翻转率、熵、伪标签准确率和各项损失（dynamics.csv）
     dyn_path = os.path.join(Project.root_path, "dynamics.csv")
@@ -231,14 +257,21 @@ def start(args, target_dataloader, CLIP_model_raw):
             # 对齐损失用的 CLIP 概率：开启 --knn_k 时换成学生特征空间近邻平滑后的版本（记忆库仍存原始 clipProb）
             # --knn_self_after：到该进度后，平滑用的自身概率和近邻概率都换成 (1 - w) · CLIP + w · 学生（w = --knn_self_w），
             #   让对齐目标在后期仍高于学生自己（静态诊断 p050：学生自身的近邻平滑比学生高 +1.0）；μ_p 仍取 CLIP 记忆库
+            # --src_expert：对齐目标里的 CLIP 概率（自身和近邻的）换成 CLIP 与冻结源模型按熵加权的专家乘积；
+            #   诊断：p000 时 Ar→Cl 有 407 个样本只有源模型判对，原方法训练开始后不再使用源模型
+            if args.src_expert and iter_num < src_expert_iter:
+                clipAlign = entropy_poe(clipProb, src_bank[index_img])
+                vilBankAlign = entropy_poe(MB.vil_bank, src_bank)
+            else:
+                clipAlign, vilBankAlign = clipProb, MB.vil_bank
             if args.knn_k > 0 and iter_num >= knn_self_iter:
                 w = args.knn_self_w
                 alignProb = knn_smooth(modelFeat, index_img, feat_bank, (1 - w) * MB.vil_bank + w * MB.model_bank,
                                        (1 - w) * clipProb + w * modelProb, args.knn_k)
             elif args.knn_k > 0:
-                alignProb = knn_smooth(modelFeat, index_img, feat_bank, MB.vil_bank, clipProb, args.knn_k)
+                alignProb = knn_smooth(modelFeat, index_img, feat_bank, vilBankAlign, clipAlign, args.knn_k)
             else:
-                alignProb = clipProb
+                alignProb = clipAlign
 
             if args.align_mode == "ot":
                 gamma1 = getGamma(args, alignProb.T, vilMemoryMean, args.otReg)     # [C, B]
@@ -435,11 +468,15 @@ if __name__ == "__main__":
     parser.add_argument("--align_weight", default="ramp", type=str, choices=["ramp", "const", "cap"],
                         help="对齐权重的进度曲线：ramp = min(1, 2·进度)（原方法）；const = 1；cap = min(--align_cap, 2·进度)")
     parser.add_argument("--align_cap", default=0.2, type=float, help="--align_weight cap 的上限（0.2 = 进度 0.1 时达到）")
+    parser.add_argument("--src_expert", action="store_true",
+                        help="对齐目标中的 CLIP 概率换成 CLIP 与冻结源模型按熵加权的专家乘积（默认关闭）")
+    parser.add_argument("--src_expert_until", default=1.0, type=float, help="--src_expert 使用到该训练进度为止；1.0 = 全程")
 
     args = parser.parse_args()
     assert not args.knn_mgva or args.knn_k > 0, "--knn_mgva 需要 --knn_k > 0"
     assert not args.log_samples or args.log_dynamics, "--log_samples 需要 --log_dynamics"
     assert args.knn_self_after >= 1.0 or args.knn_k > 0, "--knn_self_after 需要 --knn_k > 0"
+    assert not args.src_expert or args.knn_self_after >= 1.0, "--src_expert 不和 --knn_self_after 同时使用"
 
     seed_everything(args.seed)
 

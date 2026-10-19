@@ -22,6 +22,8 @@
 > | 9. 对齐权重曲线 | `bash scripts/run_weight.sh` | `--align_weight const / cap`（`--align_cap`）：对齐权重一直为 1，或交叉点后保持 0.2；底座 ot_knn10_both；结果打印在「汇总开始 / 汇总结束」之间 |
 > | 10. 对齐权重上限验证 | `bash scripts/run_cap.sh` | cap02 在 Pr→Cl / Re→Cl 的泛化、cap 0.1 / 0.3 / 0.5 扫描、Ar→Cl 上 cap02 与底座各 2 个额外种子；结果打印在「汇总开始 / 汇总结束」之间 |
 > | 11. 消融 + 全部 12 个任务 | `bash scripts/run_officehome.sh` | cap 0 / 0.05 消融、cap02 的训练动态（锁死 / 并集）、Office-Home 12 个任务 × {底座, cap02}；结果打印在「汇总开始 / 汇总结束」之间 |
+> | 12. cap02 多种子 | `bash scripts/run_seeds.sh` | 12 个任务 × cap02 × seed 0、1（底座的多种子可取消注释）；结果打印在「汇总开始 / 汇总结束」之间，含跨任务平均表 |
+> | 13. 冻结源模型专家 | `bash scripts/run_src.sh` | `--src_expert`（`--src_expert_until`）：对齐目标的 CLIP 概率换成 CLIP × 冻结源模型（按熵加权）；在 Cl→Ar、Re→Ar、Ar→Pr、Ar→Cl 上和 cap02 对照；汇总含跨任务对照和 COSMO 参照 |
 > | 诊断：训练快照 + OT 指标 | `bash scripts/run_diag.sh` | 结果打包到 `runs/diag_results/<日期>.zip` |
 > | 诊断：μ_p 消融等 | `bash scripts/run_diag_quick.sh` | 需要先跑上一行的快照 |
 > | 诊断：μ_p 估计器对比 | `bash scripts/run_diag_mu.sh` | 需要先跑 `run_diag.sh` 的快照；结果打包到 `runs/diag_mu_results/<日期>.zip` |
