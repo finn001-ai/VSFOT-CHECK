@@ -331,7 +331,7 @@ import torch
 import torch.nn as nn
 
 class InformationMaximizationLoss(nn.Module):
-    def __init__(self, trade_off=1.0):
+    def __init__(self, trade_off=1.0, ent_weight=1.0):
         """
         信息最大化损失函数：
         - 最小化预测熵（单个样本）
@@ -339,9 +339,11 @@ class InformationMaximizationLoss(nn.Module):
 
         Args:
             trade_off: 控制 diversity loss 的权重
+            ent_weight: 样本熵项的权重（1.0 = 原方法；0 = 消融，只保留 diversity）
         """
         super(InformationMaximizationLoss, self).__init__()
         self.trade_off = trade_off
+        self.ent_weight = ent_weight
 
     def forward(self, prob):
         """
@@ -357,7 +359,7 @@ class InformationMaximizationLoss(nn.Module):
         mean_prob = torch.mean(prob, dim=0)
         diversity_loss = torch.sum(mean_prob * torch.log(mean_prob + 1e-5))
 
-        loss = entropy_loss - self.trade_off * diversity_loss
+        loss = self.ent_weight * entropy_loss - self.trade_off * diversity_loss
         return loss
 
 

@@ -154,7 +154,7 @@ def start(args, target_dataloader, CLIP_model_raw):
 
     param_group = [{'params': feature_net.backbone.parameters(), 'lr': args.lr * 0.1},
                    {'params': feature_net.feat_bottleneck.parameters(), 'lr': args.lr},
-                   {'params': classifier_net.parameters(), 'lr':args.lr * 0.1}]
+                   {'params': classifier_net.parameters(), 'lr':args.lr * args.cls_lr_mult}]   # --cls_lr_mult 默认 0.1 = 原方法
     model_optimizer = torch.optim.SGD(param_group)
     model_LR = torch.optim.lr_scheduler.CosineAnnealingLR(model_optimizer, max_iter, eta_min=0, last_epoch=- 1)
 
@@ -180,7 +180,7 @@ def start(args, target_dataloader, CLIP_model_raw):
     Project.log(f"\n\n\n ==>iter: {iter_num}  " + modeleval_str(model_oa,model_aa,model_cm, args.class_info), filename=f"Detail.txt", is_print = False)
     best_acc = model_oa
 
-    IML = InformationMaximizationLoss(trade_off=args.imloss)
+    IML = InformationMaximizationLoss(trade_off=args.imloss, ent_weight=args.iml_ent)
 
     # 诊断用：在指定训练进度保存快照（默认不保存），并可提前停止（默认跑完）
     # 学习率调度仍按完整的 max_iter 计算，所以快照和完整训练时同一进度的状态一致
@@ -292,12 +292,15 @@ def start(args, target_dataloader, CLIP_model_raw):
         modelFeatGradW = feature_net(weak_img)
         modelLogitsGradW = classifier_net(modelFeatGradW)
         modelProbGrad = torch.softmax(modelLogitsGradW, dim=1)
-        gamma2, cost_matrix = getGamma_self(args, modelProbGrad, modelFeatGradW, modelMemoryMean, classifier_net, reg=args.otReg)
+        _, cost_matrix = getGamma_self(args, modelProbGrad, modelFeatGradW, modelMemoryMean, classifier_net, reg=args.otReg, need_gamma=False)
 
         with torch.no_grad():
             total_cls = MB.model_bank.mean(dim=0)
             cls_freq = torch.clamp(total_cls, min=1e-4)
             class_weights = 1.0 / cls_freq
+            # --no_clsw：消融，去掉按学生预测频率的倒数重加权（它假设类别均衡）
+            if args.no_clsw:
+                class_weights = torch.ones_like(class_weights)
         # --align_agree_after：到该进度后，学生预测和计划 argmax（重加权前）不一致的样本不再做对齐（列置 0，不重新归一化）
         #   分歧裁决分析：第 612 步之后分歧样本上学生判对的次数约为老师的 2 倍，无条件对齐等于让对的一方服从错的一方
         if iter_num >= align_agree_iter:
@@ -310,7 +313,7 @@ def start(args, target_dataloader, CLIP_model_raw):
         if args.align_view != "weak":
             modelFeatGradS = feature_net(strong_img)
             modelProbGradS = torch.softmax(classifier_net(modelFeatGradS), dim=1)
-            _, cost_matrix_s = getGamma_self(args, modelProbGradS, modelFeatGradS, modelMemoryMean, classifier_net, reg=args.otReg)
+            _, cost_matrix_s = getGamma_self(args, modelProbGradS, modelFeatGradS, modelMemoryMean, classifier_net, reg=args.otReg, need_gamma=False)
             loss_align_s = torch.sum(gamma1 * cost_matrix_s)
             loss_align = loss_align_s if args.align_view == "strong" else (loss_align + loss_align_s) / 2
 
@@ -481,6 +484,10 @@ if __name__ == "__main__":
     parser.add_argument("--src_expert", action="store_true",
                         help="对齐目标中的 CLIP 概率换成 CLIP 与冻结源模型按熵加权的专家乘积（默认关闭）")
     parser.add_argument("--src_expert_until", default=1.0, type=float, help="--src_expert 使用到该训练进度为止；1.0 = 全程")
+    # 组件审计（2026-10-19，scripts/run_audit.sh）；diversity 项用已有的 --imloss 0，SimSiam 用 --weightctr 0，MGVA 用 --freeze_teacher_at 0
+    parser.add_argument("--no_clsw", action="store_true", help="消融：对齐计划不再乘以学生预测频率的倒数（默认关闭 = 原方法）")
+    parser.add_argument("--iml_ent", default=1.0, type=float, help="IM 中样本熵项的权重；1.0 = 原方法，0 = 去掉")
+    parser.add_argument("--cls_lr_mult", default=0.1, type=float, help="分类头学习率相对 --lr 的倍数；0.1 = 原方法")
 
     args = parser.parse_args()
     assert not args.knn_mgva or args.knn_k > 0, "--knn_mgva 需要 --knn_k > 0"
