@@ -189,6 +189,7 @@ def start(args, target_dataloader, CLIP_model_raw):
     stop_iter = int(args.stop_at * max_iter)
     # 共识塌缩实验：默认 1.0 = 永不触发（原方法）
     freeze_teacher_iter = int(args.freeze_teacher_at * max_iter)    # 从这一步起老师（CLIP adapter）不再更新
+    vil_low_iter = int(args.vil_after * max_iter)                    # 从这一步起 MGVA 的学习率乘以 --vil_low
     knn_self_iter = int(args.knn_self_after * max_iter)              # 从这一步起近邻平滑混入学生概率
     align_agree_iter = int(args.align_agree_after * max_iter)
     src_expert_iter = int(args.src_expert_until * max_iter)         # --src_expert：到这一步为止对齐目标混入冻结源模型        # 从这一步起只在师生一致的样本上做对齐
@@ -363,6 +364,13 @@ def start(args, target_dataloader, CLIP_model_raw):
         # --freeze_teacher_at：到该进度后老师不再更新（仍计算 loss_vil 用于记录）
         if iter_num < freeze_teacher_iter:
             clip_optimizer.zero_grad()
+            # --vil_low / --vil_after：到该进度后 MGVA（学生 → 老师）的学习率乘以 --vil_low（1.0 = 原方法）
+            #   老师用 Adam，缩放损失几乎不改变更新幅度，所以缩放学习率
+            #   Art 目标诊断：cap02 之后剩下的塌缩是对称的，老师吸收学生错误（Cl→Ar 32 个）和学生吸收老师错误（35 个）一样多
+            if iter_num == vil_low_iter and args.vil_low != 1.0:
+                for g in clip_optimizer.param_groups:
+                    g["lr"] *= args.vil_low
+                Project.log(f"MGVA lr x {args.vil_low} at iter {iter_num}", is_print=False)
             loss_vil.backward()
             clip_optimizer.step()
         elif iter_num == freeze_teacher_iter:
@@ -468,6 +476,8 @@ if __name__ == "__main__":
     parser.add_argument("--align_weight", default="ramp", type=str, choices=["ramp", "const", "cap"],
                         help="对齐权重的进度曲线：ramp = min(1, 2·进度)（原方法）；const = 1；cap = min(--align_cap, 2·进度)")
     parser.add_argument("--align_cap", default=0.2, type=float, help="--align_weight cap 的上限（0.2 = 进度 0.1 时达到）")
+    parser.add_argument("--vil_after", default=1.0, type=float, help="到该训练进度后 MGVA（老师 adapter）的学习率乘以 --vil_low；1.0 = 不启用（原方法）")
+    parser.add_argument("--vil_low", default=1.0, type=float, help="--vil_after 之后 MGVA 学习率的倍数（0 = 等价于冻结老师）")
     parser.add_argument("--src_expert", action="store_true",
                         help="对齐目标中的 CLIP 概率换成 CLIP 与冻结源模型按熵加权的专家乘积（默认关闭）")
     parser.add_argument("--src_expert_until", default=1.0, type=float, help="--src_expert 使用到该训练进度为止；1.0 = 全程")
