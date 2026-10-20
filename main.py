@@ -168,6 +168,16 @@ def start(args, target_dataloader, CLIP_model_raw):
     with torch.no_grad():
         cls_text_features = CLIP_model_raw.encode_text(cls_text)
         MB.initialize(target_dataloader["test"], CLIP_model_raw, feature_net, classifier_net, cls_text_features, args.device)
+    # --clsw_mode prior：类均衡的目标分布 = CLIP 零样本在目标域上的平均概率（训练开始时算一次，之后固定）
+    clsw_prior = MB.vil_bank.mean(dim=0).clone()
+    # --t_proto：老师的类原型（原为固定的文本嵌入）变成可学习参数，用文本嵌入初始化，和 adapter 一起由 MGVA 更新
+    #   H1（archive/2026_10_20_h1）：学生「探针 − 实际」与老师几乎一一对应，学生继承的是固定文本原型分类头的错误
+    t_proto, t_proto_init = None, None
+    if args.t_proto:
+        with torch.no_grad():
+            t_proto_init = F.normalize(CLIP_model.encode_text(cls_text).float(), dim=1)
+        t_proto = torch.nn.Parameter(t_proto_init.clone())
+        clip_optimizer.add_param_group({"params": [t_proto]})      # 学习率同 adapter（5e-5）
     # --knn_k > 0：在学生特征空间里用近邻平滑伪标签（静态诊断见 archive/2026_10_16_diag_struct）
     feat_bank = init_feat_bank(feature_net, target_dataloader["test"], args.device) if args.knn_k > 0 else None
     # --src_expert：冻结源模型的概率库（必须在训练开始前、学生还等于源模型时计算）
@@ -264,6 +274,8 @@ def start(args, target_dataloader, CLIP_model_raw):
             vilTextFeat = CLIP_model.encode_text(cls_text)      # [C, FV]
             vilImgFeat = vilImgFeat / vilImgFeat.norm(dim=-1, keepdim=True)         # [B, FV]
             vilTextFeat = vilTextFeat / vilTextFeat.norm(dim=-1, keepdim=True)      # [B, FC]
+            if args.t_proto:                                                        # 老师给学生的预测也用学到的原型
+                vilTextFeat = F.normalize(t_proto.detach(), dim=1)
             clipSim = vilImgFeat @ vilTextFeat.T                                    # [B, C]
             clipProb = torch.softmax(100*clipSim, dim = 1)                          # [B, C]
             # 对齐损失用的 CLIP 概率：开启 --knn_k 时换成学生特征空间近邻平滑后的版本（记忆库仍存原始 clipProb）
@@ -319,10 +331,12 @@ def start(args, target_dataloader, CLIP_model_raw):
         # --clsw_mode：类频率重加权的形状（inv = 原方法 1/频率）。权重均值约为类别数，直接去掉会让对齐损失缩小约 65 倍（审计 noclsw 崩溃的原因），
         #   所以 const / sqrt 每一步都把「按计划质量加权的平均权重」调成和 inv 相同：损失量级不变，只改变类别之间的相对权重
         #   const = 所有类同一权重（不做均衡）；sqrt = 1/√频率（均衡推得轻一半）
+        #   prior = CLIP 零样本平均概率 / 频率：把学生的预测分布推向 CLIP 估计的类分布，而不是均匀分布（Art 最不均衡，sqrt 在 Art 上 +1.2）
         if args.clsw_mode != "inv":
             with torch.no_grad():
                 mass = gamma1.sum(dim=1)                                                         # [C] 本批计划在各类上的质量
-                w = torch.ones_like(class_weights) if args.clsw_mode == "const" else class_weights.sqrt()
+                w = {"const": torch.ones_like(class_weights), "sqrt": class_weights.sqrt(),
+                     "prior": clsw_prior * class_weights}[args.clsw_mode]
                 class_weights = w * (mass @ class_weights) / (mass @ w + 1e-12)
         gamma1 = gamma1 * class_weights.unsqueeze(1)
         loss_align = torch.sum(gamma1 * cost_matrix)
@@ -365,6 +379,8 @@ def start(args, target_dataloader, CLIP_model_raw):
 
         clipTextFeatGrad = CLIP_model.encode_text(cls_text)
         clipTextFeatGrad = clipTextFeatGrad / clipTextFeatGrad.norm(dim=-1, keepdim=True)
+        if args.t_proto:
+            clipTextFeatGrad = F.normalize(t_proto, dim=1)
 
         logits_clip = (100.0 * clipFeatWGrad @ clipTextFeatGrad.T)
 
@@ -393,6 +409,9 @@ def start(args, target_dataloader, CLIP_model_raw):
             loss_vil = (loss_vil + torch.mean(torch.sum(soft_labels * (log_soft_labels - log_vil_s), dim=1))) / 2
         if args.t_im > 0:
             loss_vil = loss_vil + args.t_im * IML_t(probs_vil)
+        # --t_proto_reg：把原型拉向初始文本嵌入（1 − 余弦相似度的类平均），保留语义锚点、防止漂移（离线迭代修正会越修越偏）
+        if args.t_proto:
+            loss_vil = loss_vil + args.t_proto_reg * (1 - (F.normalize(t_proto, dim=1) * t_proto_init).sum(1)).mean()
         # --freeze_teacher_at：到该进度后老师不再更新（仍计算 loss_vil 用于记录）
         if iter_num < freeze_teacher_iter:
             clip_optimizer.zero_grad()
@@ -517,8 +536,11 @@ if __name__ == "__main__":
     parser.add_argument("--no_clsw", action="store_true", help="消融：对齐计划不再乘以学生预测频率的倒数（默认关闭 = 原方法）")
     parser.add_argument("--iml_ent", default=1.0, type=float, help="IM 中样本熵项的权重；1.0 = 原方法，0 = 去掉")
     parser.add_argument("--cls_lr_mult", default=0.1, type=float, help="分类头学习率相对 --lr 的倍数；0.1 = 原方法")
-    parser.add_argument("--clsw_mode", default="inv", type=str, choices=["inv", "const", "sqrt"],
-                        help="对齐计划的类频率重加权：inv = 1/频率（原方法）；const = 不均衡；sqrt = 1/√频率；后两者每步把损失量级调成与 inv 相同")
+    parser.add_argument("--clsw_mode", default="inv", type=str, choices=["inv", "const", "sqrt", "prior"],
+                        help="对齐计划的类频率重加权：inv = 1/频率（原方法）；const = 不均衡；sqrt = 1/√频率；prior = CLIP 零样本平均概率 / 频率；"
+                             "后三者每步把损失量级调成与 inv 相同")
+    parser.add_argument("--t_proto", action="store_true", help="老师的类原型变成可学习参数（文本嵌入初始化；默认关闭 = 固定文本原型）")
+    parser.add_argument("--t_proto_reg", default=1.0, type=float, help="--t_proto 时把原型拉向初始文本嵌入的权重")
     parser.add_argument("--t_ema", action="store_true", help="老师（MGVA）学的学生概率换成逐样本动量平均（默认关闭 = 原方法）")
     parser.add_argument("--t_ema_m", default=0.7, type=float, help="--t_ema 的动量（每个样本每个 epoch 更新一次；0.7 ≈ 记住约 3 个 epoch）")
     parser.add_argument("--t_strong", action="store_true", help="老师也在强增强视图上学同一个目标（默认关闭）")
