@@ -183,6 +183,7 @@ def extract(snapshot, device, num_workers=4):
         text = clip.tokenize([f"a photo of a {c}" for c in A.class_info]).to(device)
         tf = clip_model.encode_text(text)
         tf = tf / tf.norm(dim=-1, keepdim=True)
+        snap["text_feat"] = tf.float()                # 文本原型（类名提示词的嵌入），tools/diag_proto.py 用
         for item in tqdm(DataLoader(dataset, batch_size=128, num_workers=num_workers), desc="前向"):
             h = bb[:7](item["img"].to(device).float())                 # 到 layer3
             feats["layer3"].append(h.mean(dim=(2, 3)))
