@@ -27,6 +27,7 @@
 > | 诊断：Art 目标 | `bash scripts/run_art.sh` | Cl→Ar、Re→Ar 的 cap02 和 Cl→Ar 底座，都开训练动态记录和快照；自动做共识塌缩、表示诊断、锁死结构；结果打印在「汇总开始 / 汇总结束」之间 |
 > | 14. 后期减弱 MGVA | `bash scripts/run_vil.sh` | `--vil_after P --vil_low c`：到进度 P 后老师 adapter 学习率 × c；在 Cl→Ar、Re→Ar、Ar→Cl、Ar→Pr 上和 cap02 对照 |
 > | 15. 组件审计 | `bash scripts/run_audit.sh` | 在 cap02 上逐项去掉 IM 熵项 / 类频率重加权 / IM diversity / SimSiam / MGVA、分类头学习率 ×10；4 个任务 × 6 组约 9 小时；`SUMMARY_ONLY=1` 只汇总 |
+> | 16. 老师侧学习信号 | `bash scripts/run_teacher.sh` | 在 cap02 上：`--t_ema`（老师学学生概率的动量平均）/ `--t_strong`（老师也学强增强视图）/ `--t_im 1`（老师加自身 IM）；`--clsw_mode const / sqrt`（量级匹配的类频率重加权消融）；4 个任务 × 5 组约 7.5 小时 |
 > | 诊断：训练快照 + OT 指标 | `bash scripts/run_diag.sh` | 结果打包到 `runs/diag_results/<日期>.zip` |
 > | 诊断：μ_p 消融等 | `bash scripts/run_diag_quick.sh` | 需要先跑上一行的快照 |
 > | 诊断：μ_p 估计器对比 | `bash scripts/run_diag_mu.sh` | 需要先跑 `run_diag.sh` 的快照；结果打包到 `runs/diag_mu_results/<日期>.zip` |

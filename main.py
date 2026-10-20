@@ -181,6 +181,17 @@ def start(args, target_dataloader, CLIP_model_raw):
     best_acc = model_oa
 
     IML = InformationMaximizationLoss(trade_off=args.imloss, ent_weight=args.iml_ent)
+    # 老师侧（2026-10-20，scripts/run_teacher.sh）：组件审计中老师不更新 −4.15，而老师唯一的学习信号是学生当前这一批的 top-3
+    #   --t_ema：老师学的学生概率换成逐样本跨 epoch 的动量平均（初始 = 源模型概率），少吸收学生的临时错误
+    #   --t_strong：老师在强增强视图上也学同一个目标（损失取平均），给老师一个视图一致性约束
+    #   --t_im：老师的损失加上它自己预测的 IM（熵 + diversity），一个不依赖学生的学习信号
+    t_ema_bank = MB.model_bank.clone() if args.t_ema else None
+    IML_t = InformationMaximizationLoss(trade_off=1.0) if args.t_im > 0 else None
+    # 强增强视图是 ImageNet 归一化的 224 图，换成 CLIP 的归一化（同尺寸，不需要重新读图，不消耗额外随机数）
+    in_mean = torch.tensor([0.485, 0.456, 0.406], device=args.device).view(1, 3, 1, 1)
+    in_std = torch.tensor([0.229, 0.224, 0.225], device=args.device).view(1, 3, 1, 1)
+    clip_mean = torch.tensor([0.48145466, 0.4578275, 0.40821073], device=args.device).view(1, 3, 1, 1)
+    clip_std = torch.tensor([0.26862954, 0.26130258, 0.27577711], device=args.device).view(1, 3, 1, 1)
 
     # 诊断用：在指定训练进度保存快照（默认不保存），并可提前停止（默认跑完）
     # 学习率调度仍按完整的 max_iter 计算，所以快照和完整训练时同一进度的状态一致
@@ -305,6 +316,14 @@ def start(args, target_dataloader, CLIP_model_raw):
         #   分歧裁决分析：第 612 步之后分歧样本上学生判对的次数约为老师的 2 倍，无条件对齐等于让对的一方服从错的一方
         if iter_num >= align_agree_iter:
             gamma1 = gamma1 * (modelProb.argmax(dim=1) == gamma1.argmax(dim=0)).float().unsqueeze(0)
+        # --clsw_mode：类频率重加权的形状（inv = 原方法 1/频率）。权重均值约为类别数，直接去掉会让对齐损失缩小约 65 倍（审计 noclsw 崩溃的原因），
+        #   所以 const / sqrt 每一步都把「按计划质量加权的平均权重」调成和 inv 相同：损失量级不变，只改变类别之间的相对权重
+        #   const = 所有类同一权重（不做均衡）；sqrt = 1/√频率（均衡推得轻一半）
+        if args.clsw_mode != "inv":
+            with torch.no_grad():
+                mass = gamma1.sum(dim=1)                                                         # [C] 本批计划在各类上的质量
+                w = torch.ones_like(class_weights) if args.clsw_mode == "const" else class_weights.sqrt()
+                class_weights = w * (mass @ class_weights) / (mass @ w + 1e-12)
         gamma1 = gamma1 * class_weights.unsqueeze(1)
         loss_align = torch.sum(gamma1 * cost_matrix)
         # --align_view：学生在哪个视图上对齐老师的计划（老师的计划始终来自 CLIP 对 clip_img 的判断）
@@ -351,6 +370,9 @@ def start(args, target_dataloader, CLIP_model_raw):
 
         # --knn_mgva：老师（CLIP adapter）学的目标换成学生特征空间近邻平滑后的学生概率
         mgvaProb = knn_smooth(modelFeat, index_img, feat_bank, MB.model_bank, modelProb, args.knn_k) if args.knn_mgva else modelProb
+        if args.t_ema:
+            t_ema_bank[index_img] = args.t_ema_m * t_ema_bank[index_img] + (1 - args.t_ema_m) * modelProb
+            mgvaProb = t_ema_bank[index_img]
         top3_probs, top3_indices = torch.topk(mgvaProb, k=args.topk, dim=1)
         soft_labels = torch.zeros_like(logits_clip)
         soft_labels.scatter_(1, top3_indices, top3_probs)
@@ -364,6 +386,13 @@ def start(args, target_dataloader, CLIP_model_raw):
         kl_div = torch.sum(soft_labels * kl_elementwise, dim=1)
 
         loss_vil = torch.mean(kl_div)
+        if args.t_strong:
+            clipFeatS = CLIP_model.encode_image((strong_img * in_std + in_mean - clip_mean) / clip_std)
+            clipFeatS = clipFeatS / clipFeatS.norm(dim=-1, keepdim=True)
+            log_vil_s = torch.log(torch.softmax(100.0 * clipFeatS @ clipTextFeatGrad.T, dim=1) + 1e-6)
+            loss_vil = (loss_vil + torch.mean(torch.sum(soft_labels * (log_soft_labels - log_vil_s), dim=1))) / 2
+        if args.t_im > 0:
+            loss_vil = loss_vil + args.t_im * IML_t(probs_vil)
         # --freeze_teacher_at：到该进度后老师不再更新（仍计算 loss_vil 用于记录）
         if iter_num < freeze_teacher_iter:
             clip_optimizer.zero_grad()
@@ -488,12 +517,20 @@ if __name__ == "__main__":
     parser.add_argument("--no_clsw", action="store_true", help="消融：对齐计划不再乘以学生预测频率的倒数（默认关闭 = 原方法）")
     parser.add_argument("--iml_ent", default=1.0, type=float, help="IM 中样本熵项的权重；1.0 = 原方法，0 = 去掉")
     parser.add_argument("--cls_lr_mult", default=0.1, type=float, help="分类头学习率相对 --lr 的倍数；0.1 = 原方法")
+    parser.add_argument("--clsw_mode", default="inv", type=str, choices=["inv", "const", "sqrt"],
+                        help="对齐计划的类频率重加权：inv = 1/频率（原方法）；const = 不均衡；sqrt = 1/√频率；后两者每步把损失量级调成与 inv 相同")
+    parser.add_argument("--t_ema", action="store_true", help="老师（MGVA）学的学生概率换成逐样本动量平均（默认关闭 = 原方法）")
+    parser.add_argument("--t_ema_m", default=0.7, type=float, help="--t_ema 的动量（每个样本每个 epoch 更新一次；0.7 ≈ 记住约 3 个 epoch）")
+    parser.add_argument("--t_strong", action="store_true", help="老师也在强增强视图上学同一个目标（默认关闭）")
+    parser.add_argument("--t_im", default=0.0, type=float, help="老师损失加上自身预测 IM 的权重；0 = 原方法")
 
     args = parser.parse_args()
     assert not args.knn_mgva or args.knn_k > 0, "--knn_mgva 需要 --knn_k > 0"
     assert not args.log_samples or args.log_dynamics, "--log_samples 需要 --log_dynamics"
     assert args.knn_self_after >= 1.0 or args.knn_k > 0, "--knn_self_after 需要 --knn_k > 0"
     assert not args.src_expert or args.knn_self_after >= 1.0, "--src_expert 不和 --knn_self_after 同时使用"
+    assert not (args.t_ema and args.knn_mgva), "--t_ema 不和 --knn_mgva 同时使用"
+    assert not (args.no_clsw and args.clsw_mode != "inv"), "--no_clsw 不和 --clsw_mode 同时使用"
 
     seed_everything(args.seed)
 
