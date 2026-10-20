@@ -13,6 +13,7 @@ from model.network import resnet, classifier
 from utils.otUse import getGamma, getGamma_self
 from utils.MemoryBank import MemoryBank
 from utils.adapterVIT import clipAdapter
+from utils.promptLearner import PromptLearner
 from model.simsiam import SimSiam, fastSimsiam
 import datetime
 import json
@@ -33,7 +34,7 @@ def set_rng_state(state):
     torch.set_rng_state(state[2]); torch.cuda.set_rng_state_all(state[3])
 
 
-def eval_dynamics(feature_net, classifier_net, CLIP_model, cls_text, loader, device):
+def eval_dynamics(feature_net, classifier_net, CLIP_model, cls_text, loader, device, text_fn=None):
     """训练动态：学生 / 老师（带 adapter 的 CLIP）在目标域全部图片上的预测、熵和标签（标签只用于记录）"""
     rng_state = get_rng_state()          # 遍历 DataLoader 会消耗随机数，恢复后训练过程和不记录时完全一致
     feature_net.eval(); CLIP_model.eval()
@@ -41,7 +42,7 @@ def eval_dynamics(feature_net, classifier_net, CLIP_model, cls_text, loader, dev
     out = {k: torch.zeros(N, dtype=torch.long, device=device) for k in ("s_pred", "t_pred", "label")}
     out.update({k: torch.zeros(N, device=device) for k in ("s_ent", "t_ent")})
     with torch.no_grad():
-        tf = CLIP_model.encode_text(cls_text)
+        tf = text_fn() if text_fn is not None else CLIP_model.encode_text(cls_text)      # --t_prompt：用学到的提示
         tf = tf / tf.norm(dim=-1, keepdim=True)
         for item in loader:
             idx = item["index"].to(device)
@@ -163,6 +164,20 @@ def start(args, target_dataloader, CLIP_model_raw):
 
     class_prompt = [ f'a photo of a {item}' for item in args.class_info]
     cls_text = clip.tokenize(class_prompt).to(args.device)
+    # --t_prompt：老师的文本端加可学习的提示上下文（4 个所有类共享的向量，用 "a photo of a" 的词嵌入初始化，初始输出与固定提示完全相同），
+    #   和 adapter 一起由 MGVA 更新（DIFO / ProDe / COSMO 等同类方法的标准组件）；H1：学生的缺口继承自老师固定的文本原型分类头
+    #   --no_adapter：只学提示上下文，图像侧 adapter 不更新（同 COSMO）
+    prompt_learner, text_fn = None, None
+    if args.t_prompt:
+        prompt_learner = PromptLearner(CLIP_model, cls_text, n_ctx=args.t_prompt_nctx).to(args.device)
+        text_fn = prompt_learner
+        if args.no_adapter:
+            for prm in CLIP_model.parameters():
+                prm.requires_grad = False
+            clip_optimizer = torch.optim.Adam([prompt_learner.ctx], lr=args.t_prompt_lr)
+        else:
+            clip_optimizer.add_param_group({"params": [prompt_learner.ctx], "lr": args.t_prompt_lr})
+    encode_cls_text = text_fn if text_fn is not None else (lambda: CLIP_model.encode_text(cls_text))
 
     MB = MemoryBank(target_dataloader["test"].dataset.__len__(), args.class_num, device=args.device)
     with torch.no_grad():
@@ -221,7 +236,7 @@ def start(args, target_dataloader, CLIP_model_raw):
     # --log_samples：每次记录训练动态时，同时保存逐样本的学生 / 老师预测和熵（samples.npz，用于状态转移分析）
     samples_path, samples_hist = os.path.join(Project.root_path, "samples.npz"), {}
     if args.log_dynamics:
-        dyn_prev = eval_dynamics(feature_net, classifier_net, CLIP_model, cls_text, target_dataloader["test"], args.device)
+        dyn_prev = eval_dynamics(feature_net, classifier_net, CLIP_model, cls_text, target_dataloader["test"], args.device, text_fn)
         if args.log_samples:
             save_samples(samples_path, samples_hist, 0, dyn_prev)
         r = log_dynamics(dyn_path, 0, 0, dyn_prev, None, {}, model_optimizer.param_groups[1]["lr"])
@@ -240,6 +255,7 @@ def start(args, target_dataloader, CLIP_model_raw):
                 "feature": feature_net.state_dict(),
                 "classifier": classifier_net.state_dict(),
                 "adapter": {k: v for k, v in CLIP_model.state_dict().items() if "adapter" in k},
+                "prompt_ctx": prompt_learner.ctx.detach().cpu() if prompt_learner is not None else None,
                 "vil_bank": MB.vil_bank.cpu(),
                 "model_bank": MB.model_bank.cpu(),
             }, os.path.join(Project.root_path, f"snapshot_p{round(p * 100):03d}.pt"))
@@ -271,7 +287,7 @@ def start(args, target_dataloader, CLIP_model_raw):
             modelProb = torch.softmax(modelLogits, dim=1)       # [B, C]
 
             vilImgFeat = CLIP_model.encode_image(clip_img)      # [B, FV]
-            vilTextFeat = CLIP_model.encode_text(cls_text)      # [C, FV]
+            vilTextFeat = encode_cls_text()                     # [C, FV]（--t_prompt 时为学到的提示）
             vilImgFeat = vilImgFeat / vilImgFeat.norm(dim=-1, keepdim=True)         # [B, FV]
             vilTextFeat = vilTextFeat / vilTextFeat.norm(dim=-1, keepdim=True)      # [B, FC]
             if args.t_proto:                                                        # 老师给学生的预测也用学到的原型
@@ -377,7 +393,7 @@ def start(args, target_dataloader, CLIP_model_raw):
         clipFeatWGrad = CLIP_model.encode_image(clip_img)
         clipFeatWGrad = clipFeatWGrad / clipFeatWGrad.norm(dim=-1, keepdim=True)
 
-        clipTextFeatGrad = CLIP_model.encode_text(cls_text)
+        clipTextFeatGrad = encode_cls_text()
         clipTextFeatGrad = clipTextFeatGrad / clipTextFeatGrad.norm(dim=-1, keepdim=True)
         if args.t_proto:
             clipTextFeatGrad = F.normalize(t_proto, dim=1)
@@ -461,7 +477,7 @@ def start(args, target_dataloader, CLIP_model_raw):
             Project.log(log_str, is_print=False)
             tqdm.write(f"[eval] iter {iter_num:4d}/{max_iter}  acc {acc_total:.4f}  best {best_acc:.4f}")
             if args.log_dynamics:
-                cur = eval_dynamics(feature_net, classifier_net, CLIP_model, cls_text, target_dataloader["test"], args.device)
+                cur = eval_dynamics(feature_net, classifier_net, CLIP_model, cls_text, target_dataloader["test"], args.device, text_fn)
                 if args.log_samples:
                     save_samples(samples_path, samples_hist, iter_num, cur)
                 r = log_dynamics(dyn_path, iter_num, now_epoch, cur, dyn_prev, dyn_acc, model_optimizer.param_groups[1]["lr"])
@@ -539,6 +555,10 @@ if __name__ == "__main__":
     parser.add_argument("--clsw_mode", default="inv", type=str, choices=["inv", "const", "sqrt", "prior"],
                         help="对齐计划的类频率重加权：inv = 1/频率（原方法）；const = 不均衡；sqrt = 1/√频率；prior = CLIP 零样本平均概率 / 频率；"
                              "后三者每步把损失量级调成与 inv 相同")
+    parser.add_argument("--t_prompt", action="store_true", help="老师文本端加可学习的共享提示上下文（默认关闭 = 固定提示 'a photo of a'）")
+    parser.add_argument("--t_prompt_nctx", default=4, type=int, help="--t_prompt 的上下文向量个数（用提示词前几个词初始化）")
+    parser.add_argument("--t_prompt_lr", default=1e-5, type=float, help="--t_prompt 上下文的 Adam 学习率（adapter 为 5e-5）")
+    parser.add_argument("--no_adapter", action="store_true", help="和 --t_prompt 一起用：图像侧 adapter 不更新，只学提示上下文")
     parser.add_argument("--t_proto", action="store_true", help="老师的类原型变成可学习参数（文本嵌入初始化；默认关闭 = 固定文本原型）")
     parser.add_argument("--t_proto_reg", default=1.0, type=float, help="--t_proto 时把原型拉向初始文本嵌入的权重")
     parser.add_argument("--t_ema", action="store_true", help="老师（MGVA）学的学生概率换成逐样本动量平均（默认关闭 = 原方法）")
@@ -552,6 +572,8 @@ if __name__ == "__main__":
     assert args.knn_self_after >= 1.0 or args.knn_k > 0, "--knn_self_after 需要 --knn_k > 0"
     assert not args.src_expert or args.knn_self_after >= 1.0, "--src_expert 不和 --knn_self_after 同时使用"
     assert not (args.t_ema and args.knn_mgva), "--t_ema 不和 --knn_mgva 同时使用"
+    assert not (args.t_prompt and args.t_proto), "--t_prompt 不和 --t_proto 同时使用"
+    assert not args.no_adapter or args.t_prompt, "--no_adapter 需要 --t_prompt"
     assert not (args.no_clsw and args.clsw_mode != "inv"), "--no_clsw 不和 --clsw_mode 同时使用"
 
     seed_everything(args.seed)

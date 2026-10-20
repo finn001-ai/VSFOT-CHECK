@@ -31,6 +31,7 @@
 > | 17. H1：CLIP 表示的上限 | `bash scripts/run_h1.sh` | 12 个任务训练前快照（只初始化）+ cap02 训练结束快照，线性探针比较原始 CLIP / 源模型 / 训练后学生；约 2.5–3 小时 |
 > | 18. 类原型修正（离线） | `bash scripts/run_proto.sh` | 需要先跑 run_h1.sh；在快照的 CLIP 特征上从文本原型出发做无标签原型修正，对比老师 / 探针 / COSMO；约 30 分钟，不训练 |
 > | 19. Ar→Pr 上的两个改动 | `bash scripts/run_ab.sh` | `--clsw_mode prior`（类均衡推向 CLIP 零样本平均概率）/ `--t_proto`（老师类原型可学习）；先检查 μ̂ 的前提；2 组约 50 分钟 |
+> | 20. 第 1 步：可学习提示上下文 | `bash scripts/run_prompt.sh` | `--t_prompt`（老师文本端 4 个共享上下文向量，"a photo of a" 初始化）/ `--no_adapter`；Ar→Pr，含训练动态；约 2.2 小时 |
 > | 诊断：训练快照 + OT 指标 | `bash scripts/run_diag.sh` | 结果打包到 `runs/diag_results/<日期>.zip` |
 > | 诊断：μ_p 消融等 | `bash scripts/run_diag_quick.sh` | 需要先跑上一行的快照 |
 > | 诊断：μ_p 估计器对比 | `bash scripts/run_diag_mu.sh` | 需要先跑 `run_diag.sh` 的快照；结果打包到 `runs/diag_mu_results/<日期>.zip` |
