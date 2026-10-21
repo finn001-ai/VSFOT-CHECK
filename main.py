@@ -78,6 +78,8 @@ def log_dynamics(path, iter_num, epoch, cur, prev, acc, lr):
     m = acc.get("m", 0)
     row["pl_gamma_acc"] = acc["pl_gamma"] / m if m else float("nan")     # 对齐用的计划 gamma1 每列 argmax 的准确率
     row["pl_align_acc"] = acc["pl_align"] / m if m else float("nan")     # 对齐用的 CLIP 概率（近邻平滑后）argmax 的准确率
+    row["mgva_keep"] = acc.get("keep", 0) / m if m else float("nan")      # MGVA 教老师时保留的样本比例
+    row["mgva_keep_acc"] = acc["keep_ok"] / acc["keep"] if acc.get("keep") else float("nan")   # 保留样本上学生 top-1 的准确率
     new = not os.path.exists(path)
     with open(path, "a", encoding="utf-8") as fp:
         if new:
@@ -167,11 +169,14 @@ def start(args, target_dataloader, CLIP_model_raw):
     # --t_prompt：老师的文本端加可学习的提示上下文（4 个所有类共享的向量，用 "a photo of a" 的词嵌入初始化，初始输出与固定提示完全相同），
     #   和 adapter 一起由 MGVA 更新（DIFO / ProDe / COSMO 等同类方法的标准组件）；H1：学生的缺口继承自老师固定的文本原型分类头
     #   --no_adapter：只学提示上下文，图像侧 adapter 不更新（同 COSMO）
-    prompt_learner, text_fn = None, None
+    #   --t_prompt_opt sgd：提示上下文用 DIFO / ProDe / DIFO++ 公开代码的优化器（SGD，动量 0.9，weight decay 5e-4，学习率 = 主学习率 × 0.1），单独一个优化器
+    prompt_learner, text_fn, prompt_optimizer = None, None, None
     if args.t_prompt:
         prompt_learner = PromptLearner(CLIP_model, cls_text, n_ctx=args.t_prompt_nctx).to(args.device)
         text_fn = prompt_learner
-        if args.no_adapter:
+        if args.t_prompt_opt == "sgd":
+            prompt_optimizer = torch.optim.SGD([prompt_learner.ctx], lr=args.lr * 0.1, momentum=0.9, weight_decay=5e-4)
+        elif args.no_adapter:
             for prm in CLIP_model.parameters():
                 prm.requires_grad = False
             clip_optimizer = torch.optim.Adam([prompt_learner.ctx], lr=args.t_prompt_lr)
@@ -185,6 +190,8 @@ def start(args, target_dataloader, CLIP_model_raw):
         MB.initialize(target_dataloader["test"], CLIP_model_raw, feature_net, classifier_net, cls_text_features, args.device)
     # --clsw_mode prior：类均衡的目标分布 = CLIP 零样本在目标域上的平均概率（训练开始时算一次，之后固定）
     clsw_prior = MB.vil_bank.mean(dim=0).clone()
+    # --mgva_gate agree：冻结的零样本 CLIP 预测（训练开始时的 vil_bank，之后 vil_bank 会被当前老师覆盖）
+    zs_pred = MB.vil_bank.argmax(dim=1).clone() if args.mgva_gate == "agree" else None
     # --t_proto：老师的类原型（原为固定的文本嵌入）变成可学习参数，用文本嵌入初始化，和 adapter 一起由 MGVA 更新
     #   H1（archive/2026_10_20_h1）：学生「探针 − 实际」与老师几乎一一对应，学生继承的是固定文本原型分类头的错误
     t_proto, t_proto_init = None, None
@@ -417,12 +424,29 @@ def start(args, target_dataloader, CLIP_model_raw):
         kl_elementwise = log_soft_labels - log_vil
         kl_div = torch.sum(soft_labels * kl_elementwise, dim=1)
 
-        loss_vil = torch.mean(kl_div)
+        # --mgva_gate：MGVA 只在学生标签可靠的样本上教老师（第 1 步：adapter 学每个样本的学生 top-3，第 69 步老师 87.1 → 84.5、
+        #   结束时一致率 99%，记住了学生的错误；只学提示的老师用同样的目标不掉、不塌缩）；其余样本交给 adapter 通过 CLIP 特征自己推广
+        #   agree = 学生 top-1 和冻结的零样本 CLIP 一致；conf = 学生置信度在其预测类（按学生记忆库）里排前 --mgva_keep 的样本
+        with torch.no_grad():
+            if args.mgva_gate == "agree":
+                mgva_mask = (modelProb.argmax(dim=1) == zs_pred[index_img]).float()
+            elif args.mgva_gate == "conf":
+                bank_conf, bank_pred = MB.model_bank.max(dim=1)
+                thr = torch.ones(args.class_num, device=args.device)      # 记忆库里没有样本的类：该类的批内样本都不保留
+                for c in bank_pred.unique():
+                    thr[c] = torch.quantile(bank_conf[bank_pred == c], 1 - args.mgva_keep)
+                conf_b, pred_b = modelProb.max(dim=1)
+                mgva_mask = (conf_b >= thr[pred_b]).float()
+            else:
+                mgva_mask = torch.ones_like(kl_div)
+        n_keep = mgva_mask.sum().clamp(min=1)                        # 只在保留的样本上取平均：损失量级和原方法一致
+
+        loss_vil = (kl_div * mgva_mask).sum() / n_keep
         if args.t_strong:
             clipFeatS = CLIP_model.encode_image((strong_img * in_std + in_mean - clip_mean) / clip_std)
             clipFeatS = clipFeatS / clipFeatS.norm(dim=-1, keepdim=True)
             log_vil_s = torch.log(torch.softmax(100.0 * clipFeatS @ clipTextFeatGrad.T, dim=1) + 1e-6)
-            loss_vil = (loss_vil + torch.mean(torch.sum(soft_labels * (log_soft_labels - log_vil_s), dim=1))) / 2
+            loss_vil = (loss_vil + (torch.sum(soft_labels * (log_soft_labels - log_vil_s), dim=1) * mgva_mask).sum() / n_keep) / 2
         if args.t_im > 0:
             loss_vil = loss_vil + args.t_im * IML_t(probs_vil)
         # --t_proto_reg：把原型拉向初始文本嵌入（1 − 余弦相似度的类平均），保留语义锚点、防止漂移（离线迭代修正会越修越偏）
@@ -431,6 +455,8 @@ def start(args, target_dataloader, CLIP_model_raw):
         # --freeze_teacher_at：到该进度后老师不再更新（仍计算 loss_vil 用于记录）
         if iter_num < freeze_teacher_iter:
             clip_optimizer.zero_grad()
+            if prompt_optimizer is not None:
+                prompt_optimizer.zero_grad()
             # --vil_low / --vil_after：到该进度后 MGVA（学生 → 老师）的学习率乘以 --vil_low（1.0 = 原方法）
             #   老师用 Adam，缩放损失几乎不改变更新幅度，所以缩放学习率
             #   Art 目标诊断：cap02 之后剩下的塌缩是对称的，老师吸收学生错误（Cl→Ar 32 个）和学生吸收老师错误（35 个）一样多
@@ -440,6 +466,8 @@ def start(args, target_dataloader, CLIP_model_raw):
                 Project.log(f"MGVA lr x {args.vil_low} at iter {iter_num}", is_print=False)
             loss_vil.backward()
             clip_optimizer.step()
+            if prompt_optimizer is not None:
+                prompt_optimizer.step()
         elif iter_num == freeze_teacher_iter:
             Project.log(f"Teacher frozen at iter {iter_num}", is_print=False)
             tqdm.write(f"Teacher frozen at iter {iter_num}")
@@ -460,6 +488,8 @@ def start(args, target_dataloader, CLIP_model_raw):
                 dyn_acc["pl_gamma"] = dyn_acc.get("pl_gamma", 0) + int((gamma1.argmax(dim=0) == y_b).sum())
                 dyn_acc["pl_align"] = dyn_acc.get("pl_align", 0) + int((alignProb.argmax(dim=1) == y_b).sum())
                 dyn_acc["m"] = dyn_acc.get("m", 0) + len(y_b)
+                dyn_acc["keep"] = dyn_acc.get("keep", 0) + int(mgva_mask.sum())             # MGVA 保留的样本数
+                dyn_acc["keep_ok"] = dyn_acc.get("keep_ok", 0) + int(((modelProb.argmax(dim=1) == y_b).float() * mgva_mask).sum())
 
         log_str = f'Task: SFDA, Test Target, {args.source} -> {args.target}, Iter: {iter_num:4d}/{max_iter:4d}; Align: {loss_align.item():.4f}; CTR: {loss_ctr.item():.4f}; IML: {loss_iml.item():.4f}; VLM: {loss_vil.item():.4f};'
         Project.log(log_str, is_print=False)
@@ -558,6 +588,12 @@ if __name__ == "__main__":
     parser.add_argument("--t_prompt", action="store_true", help="老师文本端加可学习的共享提示上下文（默认关闭 = 固定提示 'a photo of a'）")
     parser.add_argument("--t_prompt_nctx", default=4, type=int, help="--t_prompt 的上下文向量个数（用提示词前几个词初始化）")
     parser.add_argument("--t_prompt_lr", default=1e-5, type=float, help="--t_prompt 上下文的 Adam 学习率（adapter 为 5e-5）")
+    parser.add_argument("--t_prompt_opt", default="adam", choices=["adam", "sgd"],
+                        help="提示上下文的优化器：adam = 和 adapter 同一个 Adam（--t_prompt_lr）；sgd = DIFO 系列公开代码的设置（SGD 0.9，wd 5e-4，lr = --lr × 0.1）")
+    # 方向 A（2026-10-21，scripts/run_gate.sh）：MGVA 只在学生可靠的样本上教老师
+    parser.add_argument("--mgva_gate", default="none", choices=["none", "agree", "conf"],
+                        help="none = 原方法（所有样本）；agree = 学生和冻结零样本 CLIP 一致；conf = 学生置信度在预测类内排前 --mgva_keep")
+    parser.add_argument("--mgva_keep", default=0.5, type=float, help="--mgva_gate conf 时每个预测类保留的比例")
     parser.add_argument("--no_adapter", action="store_true", help="和 --t_prompt 一起用：图像侧 adapter 不更新，只学提示上下文")
     parser.add_argument("--t_proto", action="store_true", help="老师的类原型变成可学习参数（文本嵌入初始化；默认关闭 = 固定文本原型）")
     parser.add_argument("--t_proto_reg", default=1.0, type=float, help="--t_proto 时把原型拉向初始文本嵌入的权重")
@@ -574,6 +610,7 @@ if __name__ == "__main__":
     assert not (args.t_ema and args.knn_mgva), "--t_ema 不和 --knn_mgva 同时使用"
     assert not (args.t_prompt and args.t_proto), "--t_prompt 不和 --t_proto 同时使用"
     assert not args.no_adapter or args.t_prompt, "--no_adapter 需要 --t_prompt"
+    assert not (args.no_adapter and args.t_prompt_opt == "sgd"), "--no_adapter 不和 --t_prompt_opt sgd 同时使用"
     assert not (args.no_clsw and args.clsw_mode != "inv"), "--no_clsw 不和 --clsw_mode 同时使用"
 
     seed_everything(args.seed)

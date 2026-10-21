@@ -178,6 +178,7 @@ def main():
             ("either_acc", "任一判对", True), ("both_wrong", "两边都错", False),
             ("student_flip", "学生翻转", True), ("teacher_flip", "老师翻转", True),
             ("pl_gamma_acc", "伪标签(gamma1)", True), ("pl_align_acc", "伪标签(对齐概率)", True),
+            ("mgva_keep", "MGVA保留", True), ("mgva_keep_acc", "保留样本学生准确率", True),
             ("student_ent", "学生熵", False), ("teacher_ent", "老师熵", False),
             ("loss_align", "L_align", False), ("loss_ctr", "L_ctr", False), ("loss_iml", "L_iml", False), ("loss_vil", "L_vil", False)]
     for r in [r for r in runs if r["dyn"]]:
