@@ -426,6 +426,17 @@ def start(args, target_dataloader, CLIP_model_raw):
             mix_logits = classifier_net(feature_net(lam * weak_img + (1 - lam) * weak_img[perm]))
             loss_mix = -(mix_target * F.log_softmax(mix_logits, dim=1)).sum(dim=1).mean()
             loss1 = loss1 + args.s_mix * loss_mix
+        # --s_aad：AaD（Yang et al. 2022）—— 吸引：学生预测与它在学生特征库里 k 个近邻（记忆库中的学生概率）的点积；
+        #   分散：与批内其他样本的点积，权重 (1 + 10·进度)^(−0.75) 衰减。直接让分类头服从学生特征的近邻结构
+        if args.s_aad > 0:
+            with torch.no_grad():
+                sim = F.normalize(modelFeat, dim=1) @ feat_bank.T
+                sim[torch.arange(len(index_img), device=sim.device), index_img] = -2.0
+                nbr_prob = MB.model_bank[sim.topk(args.knn_k, dim=1).indices]                 # [B, k, C]
+            loss_att = -(modelProbGrad.unsqueeze(1) * nbr_prob).sum(dim=2).mean()
+            pp = modelProbGrad @ modelProbGrad.T
+            loss_dis = (pp.sum() - pp.diag().sum()) / modelProbGrad.size(0)
+            loss1 = loss1 + args.s_aad * (loss_att + (1 + 10 * progress) ** (-0.75) * loss_dis)
 
         model_optimizer.zero_grad()
         loss1.backward()
@@ -654,6 +665,7 @@ if __name__ == "__main__":
     parser.add_argument("--fm_tau", default=0.95, type=float, help="--s_fm 的置信度阈值")
     parser.add_argument("--s_mix", default=0.0, type=float, help="批内 mixup 损失权重（目标为学生 argmax 的混合）；0 = 不用")
     parser.add_argument("--mix_alpha", default=0.3, type=float, help="--s_mix 的 Beta 分布参数")
+    parser.add_argument("--s_aad", default=0.0, type=float, help="AaD 近邻吸引 / 批内分散损失的权重（近邻数 = --knn_k）；0 = 不用")
 
     args = parser.parse_args()
     assert not args.knn_mgva or args.knn_k > 0, "--knn_mgva 需要 --knn_k > 0"
@@ -664,6 +676,7 @@ if __name__ == "__main__":
     assert not (args.t_prompt and args.t_proto), "--t_prompt 不和 --t_proto 同时使用"
     assert not args.no_adapter or args.t_prompt, "--no_adapter 需要 --t_prompt"
     assert not (args.consensus == "both" and args.src_expert), "--consensus both 不和 --src_expert 同时使用"
+    assert not args.s_aad > 0 or args.knn_k > 0, "--s_aad 需要 --knn_k > 0"
     assert not (args.s_fm > 0 and args.mgva_gate != "none"), "--s_fm 借用 MGVA 保留的记录列，不和 --mgva_gate 同时使用"
     assert not (args.no_clsw and args.clsw_mode != "inv"), "--no_clsw 不和 --clsw_mode 同时使用"
 
