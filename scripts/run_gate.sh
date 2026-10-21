@@ -9,11 +9,14 @@
 #     gate_agree  学生 top-1 和冻结的零样本 CLIP 一致的样本
 #     gate_conf5  学生置信度在其预测类内排前 50%（按学生记忆库逐类取分位数）
 #     gate_conf8  同上，前 80%
-#   都开 --log_dynamics，训练动态新增「MGVA 保留」比例和「保留样本学生准确率」（标签只用于记录）。每组约 36 分钟，共约 2.4 小时。
+#   都开 --log_dynamics，训练动态新增「MGVA 保留」比例和「保留样本学生准确率」（标签只用于记录）。
+#   默认快速筛选：20 个 epoch（完整设置的一半，学习率 / 对齐权重按进度计算，所以是完整的短训练），组名带 _e20，
+#   只和同为 20 epoch 的 base_sgd_e20 比；每组约 18 分钟，共约 1.2 小时。确认有提升后用 FULL=1 跑完整的 40 epoch（约 2.4 小时）。
 #
 # 在 Jupyter 里运行（项目根目录下）：
 #   !bash scripts/run_gate.sh
 # 中途想先看已完成的部分：!SUMMARY_ONLY=1 bash scripts/run_gate.sh
+# 完整训练（40 epoch）：!FULL=1 bash scripts/run_gate.sh
 # 把「汇总开始」到「汇总结束」之间贴回即可，不用下载
 # =============================================================================
 
@@ -25,7 +28,8 @@ set -euo pipefail
 DATASET="OfficeHomeDataset"
 PYTHON="python -u"
 GPU=0
-EPOCHS=40              # README 命令的设置
+FULL="${FULL:-0}"
+if [ "$FULL" = "1" ]; then EPOCHS=40; SFX=""; else EPOCHS=20; SFX="_e20"; fi   # 40 = README 命令的设置
 
 BASE="--align_mode ot --knn_k 10 --align_view both"
 
@@ -34,10 +38,10 @@ PSTD="--t_prompt --t_prompt_opt sgd --log_dynamics"     # 标准提示上下文�
 
 # 训练任务，格式 "组名|源域:目标域|种子|额外参数"；按重要性排序，不想跑的组在前面加 # 注释掉
 GRPS=(
-    "base_sgd|$PSTD"
-    "gate_agree|$PSTD --mgva_gate agree"
-    "gate_conf5|$PSTD --mgva_gate conf --mgva_keep 0.5"
-    "gate_conf8|$PSTD --mgva_gate conf --mgva_keep 0.8"
+    "base_sgd$SFX|$PSTD"
+    "gate_agree$SFX|$PSTD --mgva_gate agree"
+    "gate_conf5$SFX|$PSTD --mgva_gate conf --mgva_keep 0.5"
+    "gate_conf8$SFX|$PSTD --mgva_gate conf --mgva_keep 0.8"
 )
 JOBS=()
 for g in "${GRPS[@]}"; do
@@ -118,38 +122,31 @@ mkdir -p "$RESULT_DIR"
 $PYTHON tools/ablation_collect.py --process "runs/$TRAIN_ROOT" --out "$RESULT_DIR" | grep -v "^已打包" > "$RESULT_DIR/collect.txt" \
     || echo "[警告] ablation_collect.py 失败"
 echo "============================== 汇总开始（把这一段完整贴回）=============================="
-# 相对 cap02（seed 42）的差：每格 = 最后 5 次评估均值之差（百分点），括号内为该组用时
-$PYTHON - "$RESULT_DIR/runs.csv" <<'EOF' || echo "[警告] 差值表生成失败"
+# 相对同一训练长度的 base_sgd（seed 42）的差：每格 = 最后 5 次评估均值之差（百分点）
+$PYTHON - "$RESULT_DIR/runs.csv" "$SFX" <<'EOF' || echo "[警告] 差值表生成失败"
 import csv, sys
+sfx = sys.argv[2]
 rows = [r for r in csv.DictReader(open(sys.argv[1], encoding="utf-8")) if r["seed"] == "42" and r["last5"]]
 acc = {(r["mode"], r["task"]): float(r["last5"]) * 100 for r in rows}
 sec = {(r["mode"], r["task"]): float(r["elapsed_sec"]) if r["elapsed_sec"] not in ("", "None") else 0.0 for r in rows}
-tasks = ["Ar2Pr"]
-cosmo = {"Ar2Pr": 92.6}
-modes = ["base_sgd", "gate_agree", "gate_conf5", "gate_conf8", "both_cap02_dyn", "cap02_prompt5", "cap02_promptonly"]
-print("## 方向 A：MGVA 只在可靠样本上教 adapter（Ar→Pr；后三行为第 1 步的参考）：相对 cap02 的差（seed 42，最后 5 次评估均值，百分点；括号内为用时）\n")
-print("| 组 | " + " | ".join(tasks) + " | 平均差 | 任务数 |")
-print("|---|" + "---|" * (len(tasks) + 2))
-print("| cap02（对照，绝对值） | " + " | ".join(f"{acc[('both_cap02', t)]:.2f}" if ("both_cap02", t) in acc else "-" for t in tasks) + " | - | - |")
-print("| COSMO（绝对值） | " + " | ".join(f"{cosmo[t]:.1f}" for t in tasks) + " | - | - |")
-for m in modes:
-    cells, ds = [], []
-    for t in tasks:
-        if (m, t) in acc and ("both_cap02", t) in acc:
-            d = acc[(m, t)] - acc[("both_cap02", t)]
-            ds.append(d)
-            cells.append(f"{d:+.2f}（{sec[(m, t)] / 60:.0f} 分）")
-        else:
-            cells.append("-")
-    print(f"| {m} | " + " | ".join(cells) + f" | {sum(ds) / len(ds):+.2f} | {len(ds)} |" if ds else f"| {m} | " + " | ".join(cells) + " | - | 0 |")
-print("\ncap02 对照用时：" + "，".join(f"{t} {sec[('both_cap02', t)] / 60:.0f} 分" for t in tasks if ("both_cap02", t) in sec))
+t, base = "Ar2Pr", "base_sgd" + sfx
+print(f"## 方向 A：MGVA 只在可靠样本上教 adapter（Ar→Pr，{'20' if sfx else '40'} epoch，seed 42，最后 5 次评估均值）\n")
+print("| 组 | Ar2Pr | 相对 " + base + " | 用时 |")
+print("|---|---|---|---|")
+for m in [base, "gate_agree" + sfx, "gate_conf5" + sfx, "gate_conf8" + sfx]:
+    if (m, t) in acc:
+        d = f"{acc[(m, t)] - acc[(base, t)]:+.2f}" if (base, t) in acc and m != base else "-"
+        print(f"| {m} | {acc[(m, t)]:.2f} | {d} | {sec[(m, t)] / 60:.0f} 分 |")
+    else:
+        print(f"| {m} | - | - | - |")
+print("\n参考（40 epoch）：" + "，".join(f"{m} {acc[(m, t)]:.2f}" for m in ["both_cap02", "both_cap02_dyn", "cap02_prompt5", "base_sgd"] if (m, t) in acc) + "，COSMO 92.6")
 EOF
 echo ""
 sed -n '/^## 跨任务对照/,/^## 分解/p' "$RESULT_DIR/collect.txt" | grep -E "^\||^## 跨任务" | grep -E "跨任务|^\| 模式|^\|---|both_cap02 |both_cap02_dyn|base_sgd|gate_|COSMO" || true
 echo ""
 echo "训练曲线（只列 cap02 与本轮的组）："
-awk '/^## /{t=""} /^## Ar2Pr$/{t=$2} t!="" && /^- (both_cap02|both_cap02_dyn|base_sgd|gate_[a-z0-9]*):/{print t": "$0}' "$RESULT_DIR/collect.txt" || true
+awk '/^## /{t=""} /^## Ar2Pr$/{t=$2} t!="" && /^- (both_cap02|both_cap02_dyn|base_sgd[a-z0-9_]*|gate_[a-z0-9_]*):/{print t": "$0}' "$RESULT_DIR/collect.txt" || true
 echo ""
 echo "训练动态（Ar→Pr；每行一个评估点）："
-awk '/^## 训练动态：/{p = ($0 ~ /：(both_cap02_dyn|base_sgd|gate_[a-z0-9]*) \/ Ar2Pr_s42$/)} p' "$RESULT_DIR/collect.txt" || true
+awk '/^## 训练动态：/{p = ($0 ~ /：(both_cap02_dyn|base_sgd[a-z0-9_]*|gate_[a-z0-9_]*) \/ Ar2Pr_s42$/)} p' "$RESULT_DIR/collect.txt" || true
 echo "============================== 汇总结束 =============================="
