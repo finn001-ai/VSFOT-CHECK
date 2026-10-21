@@ -406,6 +406,26 @@ def start(args, target_dataloader, CLIP_model_raw):
             if args.align_view != "weak":
                 loss_sce = (loss_sce + F.cross_entropy(classifier_net(modelFeatGradS), ce_target)) / 2
             loss1 = loss1 + args.s_ce * loss_sce
+        # 方向 C：学生自训练（不经过老师）。线性探针 95.6 vs 学生 92：表示里有、分类头没用上，用目标域结构正则分类头
+        # --s_fm：FixMatch —— 弱视图上学生（更新前）置信度 ≥ --fm_tau 的样本，强视图上对其 argmax 做交叉熵（除以批大小）
+        if args.s_fm > 0:
+            with torch.no_grad():
+                fm_conf, fm_target = modelProb.max(dim=1)
+                fm_mask = (fm_conf >= args.fm_tau).float()
+            logitsS = classifier_net(modelFeatGradS) if args.align_view != "weak" else classifier_net(feature_net(strong_img))
+            loss_fm = (F.cross_entropy(logitsS, fm_target, reduction="none") * fm_mask).mean()
+            loss1 = loss1 + args.s_fm * loss_fm
+        # --s_mix：批内 mixup —— 弱视图图像按 λ ~ Beta(α, α) 混合，目标为两张图学生（更新前）argmax 的同比例混合
+        if args.s_mix > 0:
+            with torch.no_grad():
+                lam = float(np.random.beta(args.mix_alpha, args.mix_alpha))
+                lam = max(lam, 1 - lam)
+                perm = torch.randperm(weak_img.size(0), device=weak_img.device)
+                y1 = F.one_hot(modelProb.argmax(dim=1), args.class_num).float()
+                mix_target = lam * y1 + (1 - lam) * y1[perm]
+            mix_logits = classifier_net(feature_net(lam * weak_img + (1 - lam) * weak_img[perm]))
+            loss_mix = -(mix_target * F.log_softmax(mix_logits, dim=1)).sum(dim=1).mean()
+            loss1 = loss1 + args.s_mix * loss_mix
 
         model_optimizer.zero_grad()
         loss1.backward()
@@ -510,8 +530,10 @@ def start(args, target_dataloader, CLIP_model_raw):
                 dyn_acc["pl_gamma"] = dyn_acc.get("pl_gamma", 0) + int((gamma1.argmax(dim=0) == y_b).sum())
                 dyn_acc["pl_align"] = dyn_acc.get("pl_align", 0) + int((alignProb.argmax(dim=1) == y_b).sum())
                 dyn_acc["m"] = dyn_acc.get("m", 0) + len(y_b)
-                dyn_acc["keep"] = dyn_acc.get("keep", 0) + int(mgva_mask.sum())             # MGVA 保留的样本数
-                dyn_acc["keep_ok"] = dyn_acc.get("keep_ok", 0) + int(((modelProb.argmax(dim=1) == y_b).float() * mgva_mask).sum())
+                # MGVA 保留的样本数 / 其中学生 top-1 判对的数；--s_fm 时这两列改记 FixMatch 保留的样本（此时 MGVA 不门控）
+                keep_mask = fm_mask if args.s_fm > 0 else mgva_mask
+                dyn_acc["keep"] = dyn_acc.get("keep", 0) + int(keep_mask.sum())
+                dyn_acc["keep_ok"] = dyn_acc.get("keep_ok", 0) + int(((modelProb.argmax(dim=1) == y_b).float() * keep_mask).sum())
 
         log_str = f'Task: SFDA, Test Target, {args.source} -> {args.target}, Iter: {iter_num:4d}/{max_iter:4d}; Align: {loss_align.item():.4f}; CTR: {loss_ctr.item():.4f}; IML: {loss_iml.item():.4f}; VLM: {loss_vil.item():.4f};'
         Project.log(log_str, is_print=False)
@@ -627,6 +649,11 @@ if __name__ == "__main__":
     parser.add_argument("--consensus", default="none", choices=["none", "teacher", "both"],
                         help="none = 原方法（老师学学生 top-3，学生学老师）；teacher = 老师学「老师 × 学生」熵加权专家乘积；both = 学生对齐目标也换成它")
     parser.add_argument("--s_ce", default=0.0, type=float, help="学生对共识 argmax 的硬交叉熵权重；0 = 不用")
+    # 方向 C（2026-10-22，scripts/run_self.sh）：学生自训练
+    parser.add_argument("--s_fm", default=0.0, type=float, help="FixMatch 损失权重（弱视图自身高置信伪标签 → 强视图交叉熵）；0 = 不用")
+    parser.add_argument("--fm_tau", default=0.95, type=float, help="--s_fm 的置信度阈值")
+    parser.add_argument("--s_mix", default=0.0, type=float, help="批内 mixup 损失权重（目标为学生 argmax 的混合）；0 = 不用")
+    parser.add_argument("--mix_alpha", default=0.3, type=float, help="--s_mix 的 Beta 分布参数")
 
     args = parser.parse_args()
     assert not args.knn_mgva or args.knn_k > 0, "--knn_mgva 需要 --knn_k > 0"
@@ -637,6 +664,7 @@ if __name__ == "__main__":
     assert not (args.t_prompt and args.t_proto), "--t_prompt 不和 --t_proto 同时使用"
     assert not args.no_adapter or args.t_prompt, "--no_adapter 需要 --t_prompt"
     assert not (args.consensus == "both" and args.src_expert), "--consensus both 不和 --src_expert 同时使用"
+    assert not (args.s_fm > 0 and args.mgva_gate != "none"), "--s_fm 借用 MGVA 保留的记录列，不和 --mgva_gate 同时使用"
     assert not (args.no_clsw and args.clsw_mode != "inv"), "--no_clsw 不和 --clsw_mode 同时使用"
 
     seed_everything(args.seed)
