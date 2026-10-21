@@ -176,6 +176,10 @@ def start(args, target_dataloader, CLIP_model_raw):
         text_fn = prompt_learner
         if args.t_prompt_opt == "sgd":
             prompt_optimizer = torch.optim.SGD([prompt_learner.ctx], lr=args.lr * 0.1, momentum=0.9, weight_decay=5e-4)
+            if args.no_adapter:                     # 只学提示上下文：adapter 冻结，不再需要 Adam
+                for prm in CLIP_model.parameters():
+                    prm.requires_grad = False
+                clip_optimizer = None
         elif args.no_adapter:
             for prm in CLIP_model.parameters():
                 prm.requires_grad = False
@@ -309,6 +313,10 @@ def start(args, target_dataloader, CLIP_model_raw):
             if args.src_expert and iter_num < src_expert_iter:
                 clipAlign = entropy_poe(clipProb, src_bank[index_img])
                 vilBankAlign = entropy_poe(MB.vil_bank, src_bank)
+            # --consensus both：学生对齐的目标（自身和近邻的）换成老师与学生按熵加权的专家乘积（COSMO 式共享共识，更新前的预测，detach）
+            elif args.consensus == "both":
+                clipAlign = entropy_poe(clipProb, modelProb)
+                vilBankAlign = entropy_poe(MB.vil_bank, MB.model_bank)
             else:
                 clipAlign, vilBankAlign = clipProb, MB.vil_bank
             if args.knn_k > 0 and iter_num >= knn_self_iter:
@@ -390,6 +398,14 @@ def start(args, target_dataloader, CLIP_model_raw):
         loss1 = args.weightalign * weight_align * loss_align + \
                 args.weightctr * loss_ctr + \
                 args.weightiml * loss_iml
+        # --s_ce：学生在弱 / 强视图上对共识（老师 × 学生专家乘积）argmax 的硬交叉熵（COSMO：去掉硬 CE 86.4 → 79.7）
+        if args.s_ce > 0:
+            with torch.no_grad():
+                ce_target = entropy_poe(clipProb, modelProb).argmax(dim=1)
+            loss_sce = F.cross_entropy(modelLogitsGradW, ce_target)
+            if args.align_view != "weak":
+                loss_sce = (loss_sce + F.cross_entropy(classifier_net(modelFeatGradS), ce_target)) / 2
+            loss1 = loss1 + args.s_ce * loss_sce
 
         model_optimizer.zero_grad()
         loss1.backward()
@@ -412,6 +428,10 @@ def start(args, target_dataloader, CLIP_model_raw):
         if args.t_ema:
             t_ema_bank[index_img] = args.t_ema_m * t_ema_bank[index_img] + (1 - args.t_ema_m) * modelProb
             mgvaProb = t_ema_bank[index_img]
+        # --consensus teacher / both：老师学的不再是学生的 top-3，而是老师与学生（更新前）按熵加权的专家乘积
+        #   第 1 步：学生终点 ≈ 训练前并集 + 0.5，「谁教谁」才是问题；COSMO 消融里共享共识比互相监督 +1.0
+        if args.consensus != "none":
+            mgvaProb = entropy_poe(clipProb, modelProb)
         top3_probs, top3_indices = torch.topk(mgvaProb, k=args.topk, dim=1)
         soft_labels = torch.zeros_like(logits_clip)
         soft_labels.scatter_(1, top3_indices, top3_probs)
@@ -454,18 +474,20 @@ def start(args, target_dataloader, CLIP_model_raw):
             loss_vil = loss_vil + args.t_proto_reg * (1 - (F.normalize(t_proto, dim=1) * t_proto_init).sum(1)).mean()
         # --freeze_teacher_at：到该进度后老师不再更新（仍计算 loss_vil 用于记录）
         if iter_num < freeze_teacher_iter:
-            clip_optimizer.zero_grad()
+            if clip_optimizer is not None:
+                clip_optimizer.zero_grad()
             if prompt_optimizer is not None:
                 prompt_optimizer.zero_grad()
             # --vil_low / --vil_after：到该进度后 MGVA（学生 → 老师）的学习率乘以 --vil_low（1.0 = 原方法）
             #   老师用 Adam，缩放损失几乎不改变更新幅度，所以缩放学习率
             #   Art 目标诊断：cap02 之后剩下的塌缩是对称的，老师吸收学生错误（Cl→Ar 32 个）和学生吸收老师错误（35 个）一样多
-            if iter_num == vil_low_iter and args.vil_low != 1.0:
+            if iter_num == vil_low_iter and args.vil_low != 1.0 and clip_optimizer is not None:
                 for g in clip_optimizer.param_groups:
                     g["lr"] *= args.vil_low
                 Project.log(f"MGVA lr x {args.vil_low} at iter {iter_num}", is_print=False)
             loss_vil.backward()
-            clip_optimizer.step()
+            if clip_optimizer is not None:
+                clip_optimizer.step()
             if prompt_optimizer is not None:
                 prompt_optimizer.step()
         elif iter_num == freeze_teacher_iter:
@@ -601,6 +623,10 @@ if __name__ == "__main__":
     parser.add_argument("--t_ema_m", default=0.7, type=float, help="--t_ema 的动量（每个样本每个 epoch 更新一次；0.7 ≈ 记住约 3 个 epoch）")
     parser.add_argument("--t_strong", action="store_true", help="老师也在强增强视图上学同一个目标（默认关闭）")
     parser.add_argument("--t_im", default=0.0, type=float, help="老师损失加上自身预测 IM 的权重；0 = 原方法")
+    # 方向 B（2026-10-22，scripts/run_cons.sh）：COSMO 式共享共识
+    parser.add_argument("--consensus", default="none", choices=["none", "teacher", "both"],
+                        help="none = 原方法（老师学学生 top-3，学生学老师）；teacher = 老师学「老师 × 学生」熵加权专家乘积；both = 学生对齐目标也换成它")
+    parser.add_argument("--s_ce", default=0.0, type=float, help="学生对共识 argmax 的硬交叉熵权重；0 = 不用")
 
     args = parser.parse_args()
     assert not args.knn_mgva or args.knn_k > 0, "--knn_mgva 需要 --knn_k > 0"
@@ -610,7 +636,7 @@ if __name__ == "__main__":
     assert not (args.t_ema and args.knn_mgva), "--t_ema 不和 --knn_mgva 同时使用"
     assert not (args.t_prompt and args.t_proto), "--t_prompt 不和 --t_proto 同时使用"
     assert not args.no_adapter or args.t_prompt, "--no_adapter 需要 --t_prompt"
-    assert not (args.no_adapter and args.t_prompt_opt == "sgd"), "--no_adapter 不和 --t_prompt_opt sgd 同时使用"
+    assert not (args.consensus == "both" and args.src_expert), "--consensus both 不和 --src_expert 同时使用"
     assert not (args.no_clsw and args.clsw_mode != "inv"), "--no_clsw 不和 --clsw_mode 同时使用"
 
     seed_everything(args.seed)
