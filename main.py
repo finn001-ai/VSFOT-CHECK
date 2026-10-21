@@ -367,7 +367,8 @@ def start(args, target_dataloader, CLIP_model_raw):
             with torch.no_grad():
                 mass = gamma1.sum(dim=1)                                                         # [C] 本批计划在各类上的质量
                 w = {"const": torch.ones_like(class_weights), "sqrt": class_weights.sqrt(),
-                     "prior": clsw_prior * class_weights}[args.clsw_mode]
+                     "prior": clsw_prior * class_weights,
+                     "pow": class_weights ** args.clsw_pow}[args.clsw_mode]
                 class_weights = w * (mass @ class_weights) / (mass @ w + 1e-12)
         gamma1 = gamma1 * class_weights.unsqueeze(1)
         loss_align = torch.sum(gamma1 * cost_matrix)
@@ -637,9 +638,12 @@ if __name__ == "__main__":
     parser.add_argument("--no_clsw", action="store_true", help="消融：对齐计划不再乘以学生预测频率的倒数（默认关闭 = 原方法）")
     parser.add_argument("--iml_ent", default=1.0, type=float, help="IM 中样本熵项的权重；1.0 = 原方法，0 = 去掉")
     parser.add_argument("--cls_lr_mult", default=0.1, type=float, help="分类头学习率相对 --lr 的倍数；0.1 = 原方法")
-    parser.add_argument("--clsw_mode", default="inv", type=str, choices=["inv", "const", "sqrt", "prior"],
+    parser.add_argument("--clsw_mode", default="inv", type=str, choices=["inv", "const", "sqrt", "prior", "pow"],
                         help="对齐计划的类频率重加权：inv = 1/频率（原方法）；const = 不均衡；sqrt = 1/√频率；prior = CLIP 零样本平均概率 / 频率；"
                              "后三者每步把损失量级调成与 inv 相同")
+    # 方向 E（2026-10-22）：Ar→Pr 的剩余错误是成对的语义混淆（Trash_Can→Bucket 19、Folder→Notebook 19、Marker→Pen 18…），
+    #   被吞并的类预测数只有真实的 0.69 ~ 0.74；sqrt（更弱的均衡）在 Product 上 −1.5，试更强的均衡
+    parser.add_argument("--clsw_pow", default=1.0, type=float, help="--clsw_mode pow：权重 = 1 / 频率^p（量级同 inv）；1.0 = inv，0.5 = sqrt")
     parser.add_argument("--t_prompt", action="store_true", help="老师文本端加可学习的共享提示上下文（默认关闭 = 固定提示 'a photo of a'）")
     parser.add_argument("--t_prompt_nctx", default=4, type=int, help="--t_prompt 的上下文向量个数（用提示词前几个词初始化）")
     parser.add_argument("--t_prompt_lr", default=1e-5, type=float, help="--t_prompt 上下文的 Adam 学习率（adapter 为 5e-5）")
