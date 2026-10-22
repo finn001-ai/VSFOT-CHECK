@@ -358,6 +358,11 @@ def start(args, target_dataloader, CLIP_model_raw):
                    f"学生 {st['student']:.4f} → {st['after']:.4f}")
             Project.log(msg, is_print=False)
             tqdm.write(msg)
+        # --split_release：到该进度撤掉改名（之后回到原来的对齐计划和老师目标）
+        if split_fix is not None and iter_num >= int(args.split_release * max_iter):
+            split_fix = None
+            Project.log(f"[split] iter {iter_num}  撤掉改名", is_print=False)
+            tqdm.write(f"[split] iter {iter_num}  撤掉改名")
         if iter_num >= stop_iter:
             Project.log(f"Stop at progress {args.stop_at} (iter {iter_num})", is_print=False)
             tqdm.write(f"Stop at progress {args.stop_at} (iter {iter_num})")
@@ -748,6 +753,7 @@ if __name__ == "__main__":
     parser.add_argument("--split_until", default=0.0, type=float, help="> --split_at 时，之后每个 epoch 重做一次直到该进度")
     parser.add_argument("--split_k", default=3, type=int, help="每个预测类拆成的子簇数")
     parser.add_argument("--split_theta", default=0.2, type=float, help="子簇平均概率 第二名 / 预测类 的阈值")
+    parser.add_argument("--split_release", default=1.0, type=float, help="到该训练进度撤掉改名（需 > --split_until）；1.0 = 一直用")
     parser.add_argument("--split_teacher", action="store_true", help="老师（MGVA）也学改名后的类")
     parser.add_argument("--t_flip", action="store_true", help="老师给学生的预测取原图与水平翻转图的概率平均（默认关闭）")
     parser.add_argument("--clsw_pow", default=1.0, type=float, help="--clsw_mode pow：权重 = 1 / 频率^p（量级同 inv）；1.0 = inv，0.5 = sqrt")
