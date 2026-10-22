@@ -305,6 +305,10 @@ def start(args, target_dataloader, CLIP_model_raw):
                 vilTextFeat = F.normalize(t_proto.detach(), dim=1)
             clipSim = vilImgFeat @ vilTextFeat.T                                    # [B, C]
             clipProb = torch.softmax(100*clipSim, dim = 1)                          # [B, C]
+            # --t_flip：老师给学生的预测取原图与水平翻转图的概率平均（伪标签的多视图平均，老师本身不变）
+            if args.t_flip:
+                vilImgFeatF = F.normalize(CLIP_model.encode_image(torch.flip(clip_img, dims=[3])), dim=-1)
+                clipProb = (clipProb + torch.softmax(100 * vilImgFeatF @ vilTextFeat.T, dim=1)) / 2
             # 对齐损失用的 CLIP 概率：开启 --knn_k 时换成学生特征空间近邻平滑后的版本（记忆库仍存原始 clipProb）
             # --knn_self_after：到该进度后，平滑用的自身概率和近邻概率都换成 (1 - w) · CLIP + w · 学生（w = --knn_self_w），
             #   让对齐目标在后期仍高于学生自己（静态诊断 p050：学生自身的近邻平滑比学生高 +1.0）；μ_p 仍取 CLIP 记忆库
@@ -643,6 +647,7 @@ if __name__ == "__main__":
                              "后三者每步把损失量级调成与 inv 相同")
     # 方向 E（2026-10-22）：Ar→Pr 的剩余错误是成对的语义混淆（Trash_Can→Bucket 19、Folder→Notebook 19、Marker→Pen 18…），
     #   被吞并的类预测数只有真实的 0.69 ~ 0.74；sqrt（更弱的均衡）在 Product 上 −1.5，试更强的均衡
+    parser.add_argument("--t_flip", action="store_true", help="老师给学生的预测取原图与水平翻转图的概率平均（默认关闭）")
     parser.add_argument("--clsw_pow", default=1.0, type=float, help="--clsw_mode pow：权重 = 1 / 频率^p（量级同 inv）；1.0 = inv，0.5 = sqrt")
     parser.add_argument("--t_prompt", action="store_true", help="老师文本端加可学习的共享提示上下文（默认关闭 = 固定提示 'a photo of a'）")
     parser.add_argument("--t_prompt_nctx", default=4, type=int, help="--t_prompt 的上下文向量个数（用提示词前几个词初始化）")
