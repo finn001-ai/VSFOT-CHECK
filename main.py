@@ -143,6 +143,81 @@ def entropy_poe(p, q):
     return torch.softmax(a * torch.log(p + 1e-8) + (1 - a) * torch.log(q + 1e-8), dim=1)
 
 
+def kmeans_cos(x, k, restarts=5, iters=50, seed=0):
+    """余弦 k-means（x 已 L2 归一化），k-means++ 初始化，取簇内相似度和最大的一次；返回 [n] 簇号（同 tools/diag_split.py）"""
+    g = torch.Generator(device="cpu").manual_seed(seed)
+    best, best_score = None, -1e9
+    n = x.shape[0]
+    for _ in range(restarts):
+        cent = x[torch.randint(n, (1,), generator=g)].clone()
+        for _ in range(1, k):
+            d = (1 - (x @ cent.T).max(1).values).clamp(min=0) ** 2
+            prob = (d / d.sum()).cpu() if d.sum() > 0 else torch.full((n,), 1.0 / n)
+            cent = torch.cat([cent, x[torch.multinomial(prob, 1, generator=g)]])
+        for _ in range(iters):
+            a = (x @ cent.T).argmax(1)
+            new = torch.stack([F.normalize(x[a == j].mean(0), dim=0) if (a == j).any() else cent[j] for j in range(k)])
+            if torch.allclose(new, cent):
+                break
+            cent = new
+        score = (x @ cent.T).max(1).values.sum().item()
+        if score > best_score:
+            best, best_score = a.clone(), score
+    return best
+
+
+def split_relabel(feature_net, classifier_net, CLIP_model, text_fn, cls_text, loader, device, C, k, theta, min_size=5):
+    """--split_at：在老师 CLIP 特征空间里把每个学生预测类拆成 k 个子簇；子簇平均概率（(学生 + 老师) / 2）里预测类以外的第一名 r
+    满足 m[r] / m[c] ≥ theta、且子簇中心离 r 类中心（各类高置信一半样本的均值）比离 c 类中心更近时，整个子簇改名为 r。
+    返回 [N] 改名后的类（-1 = 不改）和统计（标签只用于记录）。离线诊断：Ar→Pr 进度 5% 快照 +2.79（纠正 160 / 改坏 36），见 tools/diag_split.py"""
+    rng_state = get_rng_state()
+    feature_net.eval(); CLIP_model.eval()
+    N = len(loader.dataset)
+    ps, pt, vf, y = torch.zeros(N, C, device=device), torch.zeros(N, C, device=device), None, torch.zeros(N, dtype=torch.long, device=device)
+    with torch.no_grad():
+        tf = text_fn() if text_fn is not None else CLIP_model.encode_text(cls_text)
+        tf = F.normalize(tf.float(), dim=-1)
+        for item in loader:
+            idx = item["index"].to(device)
+            ps[idx] = torch.softmax(classifier_net(feature_net(item["img"].to(device).float())), dim=1)
+            f = F.normalize(CLIP_model.encode_image(item["clip_img"].to(device).float()).float(), dim=-1)
+            if vf is None:
+                vf = torch.zeros(N, f.shape[1], device=device)
+            vf[idx] = f
+            pt[idx] = torch.softmax(100 * f @ tf.T, dim=1)
+            y[idx] = item["label"].to(device)
+        avg = (ps + pt) / 2
+        pred, conf = ps.argmax(1), avg.max(1).values
+        cen = torch.zeros(C, vf.shape[1], device=device)
+        for c in range(C):
+            idx = (pred == c).nonzero(as_tuple=True)[0]
+            if len(idx):
+                cen[c] = F.normalize(vf[idx[conf[idx] >= conf[idx].median()]].mean(0), dim=0)
+        fix = torch.full((N,), -1, dtype=torch.long, device=device)
+        for c in range(C):
+            idx = (pred == c).nonzero(as_tuple=True)[0]
+            if len(idx) < 2 * min_size:
+                continue
+            a = kmeans_cos(vf[idx], k).to(device)
+            for j in range(k):
+                gi = idx[a == j]
+                if len(gi) < min_size:
+                    continue
+                m = avg[gi].mean(0)
+                m_c = m.clone(); m_c[c] = -1
+                r = m_c.argmax().item()
+                gc = F.normalize(vf[gi].mean(0), dim=0)
+                if m[r] / m[c] >= theta and gc @ cen[r] > gc @ cen[c]:
+                    fix[gi] = r
+    feature_net.train(); CLIP_model.train()
+    set_rng_state(rng_state)
+    ch = fix >= 0
+    stats = {"changed": int(ch.sum()), "fixed": int((ch & (fix == y) & (pred != y)).sum()),
+             "broke": int((ch & (fix != y) & (pred == y)).sum()), "student": (pred == y).float().mean().item(),
+             "after": torch.where(ch, fix, pred).eq(y).float().mean().item()}
+    return fix, stats
+
+
 def start(args, target_dataloader, CLIP_model_raw):
     network = torch.load(os.path.join("runs", args.sourceStorage, f"Source_{args.source.lower()}", "Source.pt"), weights_only=False)
     feature_net = resnet(res_name=args.arch).to(args.device)
@@ -209,6 +284,8 @@ def start(args, target_dataloader, CLIP_model_raw):
     # --src_expert：冻结源模型的概率库（必须在训练开始前、学生还等于源模型时计算）
     src_bank = init_src_bank(feature_net, classifier_net, target_dataloader["test"], args.device) if args.src_expert else None
     SSNB = SimSiam(feature_net).to(args.device)
+    # --split_at：混淆类拆分纠正（改名结果在之后的训练里覆盖该样本的对齐计划和老师目标）
+    split_fix = None
 
     model_cm, model_oa, model_aa, model_class_acc = modeleval(args, feature_net, classifier_net, target_dataloader["test"])
     ModellineAcc = lineClassAcc(args, model_class_acc, 0, header=True)
@@ -272,6 +349,15 @@ def start(args, target_dataloader, CLIP_model_raw):
             }, os.path.join(Project.root_path, f"snapshot_p{round(p * 100):03d}.pt"))
             Project.log(f"Snapshot saved at progress {p} (iter {iter_num})", is_print=False)
             tqdm.write(f"Snapshot saved at progress {p} (iter {iter_num})")
+        # --split_at：到该进度时做一次混淆类拆分纠正；--split_until > --split_at 时之后每个 epoch 重做一次，直到该进度
+        if args.split_at < 1.0 and iter_num >= int(args.split_at * max_iter) and iter_num <= int(max(args.split_until, args.split_at) * max_iter) \
+                and (split_fix is None or (iter_num - int(args.split_at * max_iter)) % epoch_iter_num == 0):
+            split_fix, st = split_relabel(feature_net, classifier_net, CLIP_model, text_fn, cls_text, target_dataloader["test"],
+                                          args.device, args.class_num, args.split_k, args.split_theta)
+            msg = (f"[split] iter {iter_num}  改名 {st['changed']}（纠正 {st['fixed']} / 改坏 {st['broke']}），"
+                   f"学生 {st['student']:.4f} → {st['after']:.4f}")
+            Project.log(msg, is_print=False)
+            tqdm.write(msg)
         if iter_num >= stop_iter:
             Project.log(f"Stop at progress {args.stop_at} (iter {iter_num})", is_print=False)
             tqdm.write(f"Stop at progress {args.stop_at} (iter {iter_num})")
@@ -351,6 +437,13 @@ def start(args, target_dataloader, CLIP_model_raw):
         modelLogitsGradW = classifier_net(modelFeatGradW)
         modelProbGrad = torch.softmax(modelLogitsGradW, dim=1)
         _, cost_matrix = getGamma_self(args, modelProbGrad, modelFeatGradW, modelMemoryMean, classifier_net, reg=args.otReg, need_gamma=False)
+
+        # --split_at：改过名的样本，对齐计划这一列换成改名后的类（质量 1/B，与计划其他列一致）
+        if split_fix is not None:
+            fb = split_fix[index_img]
+            sm = fb >= 0
+            if sm.any():
+                gamma1[:, sm] = F.one_hot(fb[sm], args.class_num).float().T / gamma1.size(1)
 
         with torch.no_grad():
             total_cls = MB.model_bank.mean(dim=0)
@@ -468,6 +561,9 @@ def start(args, target_dataloader, CLIP_model_raw):
         #   第 1 步：学生终点 ≈ 训练前并集 + 0.5，「谁教谁」才是问题；COSMO 消融里共享共识比互相监督 +1.0
         if args.consensus != "none":
             mgvaProb = entropy_poe(clipProb, modelProb)
+        if split_fix is not None and args.split_teacher and sm.any():      # 老师也学改名后的类
+            mgvaProb = mgvaProb.clone()
+            mgvaProb[sm] = F.one_hot(fb[sm], args.class_num).float()
         top3_probs, top3_indices = torch.topk(mgvaProb, k=args.topk, dim=1)
         soft_labels = torch.zeros_like(logits_clip)
         soft_labels.scatter_(1, top3_indices, top3_probs)
@@ -647,6 +743,12 @@ if __name__ == "__main__":
                              "后三者每步把损失量级调成与 inv 相同")
     # 方向 E（2026-10-22）：Ar→Pr 的剩余错误是成对的语义混淆（Trash_Can→Bucket 19、Folder→Notebook 19、Marker→Pen 18…），
     #   被吞并的类预测数只有真实的 0.69 ~ 0.74；sqrt（更弱的均衡）在 Product 上 −1.5，试更强的均衡
+    # 混淆类拆分纠正（2026-10-22，scripts/run_splitfix.sh）：tools/diag_split.py 早期快照上无标签改名为正
+    parser.add_argument("--split_at", default=1.0, type=float, help="到该训练进度做混淆类拆分纠正；1.0 = 不做")
+    parser.add_argument("--split_until", default=0.0, type=float, help="> --split_at 时，之后每个 epoch 重做一次直到该进度")
+    parser.add_argument("--split_k", default=3, type=int, help="每个预测类拆成的子簇数")
+    parser.add_argument("--split_theta", default=0.2, type=float, help="子簇平均概率 第二名 / 预测类 的阈值")
+    parser.add_argument("--split_teacher", action="store_true", help="老师（MGVA）也学改名后的类")
     parser.add_argument("--t_flip", action="store_true", help="老师给学生的预测取原图与水平翻转图的概率平均（默认关闭）")
     parser.add_argument("--clsw_pow", default=1.0, type=float, help="--clsw_mode pow：权重 = 1 / 频率^p（量级同 inv）；1.0 = inv，0.5 = sqrt")
     parser.add_argument("--t_prompt", action="store_true", help="老师文本端加可学习的共享提示上下文（默认关闭 = 固定提示 'a photo of a'）")
