@@ -101,6 +101,7 @@ if __name__ == "__main__":
     parser.add_argument('--name', type=str, default=None)
     parser.add_argument('--batch_size', type=int, default=64)
     parser.add_argument('--seed', type=int, default=42)
+    parser.add_argument('--workers', type=int, default=None, help="DataLoader 进程数；默认沿用原设置（4 / 5）。VisDA / DomainNet 图片大，数据加载是瓶颈时调大")
     parser.add_argument('--source', type=str, default="clipart")
     parser.add_argument('--epochs', type=int, default=20)
     parser.add_argument('--arch', type=str, default="resnet50")

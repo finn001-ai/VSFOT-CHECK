@@ -88,11 +88,11 @@ def get_dataloader_SFDA(args, domain, divide = False, getTrain = True):
         test_dataset_list = datasetList  
     if getTrain:
         train_dataset = dataset_norm(image_list = train_dataset_list, isTrian = True)
-        dataloader_dirt["train"] = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, drop_last=True, num_workers=5, pin_memory=True, persistent_workers=True)
+        dataloader_dirt["train"] = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, drop_last=True, num_workers=getattr(args, "workers", None) or 5, pin_memory=True, persistent_workers=True)
     test_dataset = dataset_norm(image_list = test_dataset_list, isTrian = False)
-    dataloader_dirt["test"] = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False, drop_last=False, num_workers=5, pin_memory=True, persistent_workers = True)
+    dataloader_dirt["test"] = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False, drop_last=False, num_workers=getattr(args, "workers", None) or 5, pin_memory=True, persistent_workers = True)
     full_dataset = dataset_norm(image_list = datasetList, isTrian = False)
-    dataloader_dirt["fulltest"] = DataLoader(full_dataset, batch_size=args.batch_size, shuffle=False, drop_last=False, num_workers=5, pin_memory=True, persistent_workers = True)
+    dataloader_dirt["fulltest"] = DataLoader(full_dataset, batch_size=args.batch_size, shuffle=False, drop_last=False, num_workers=getattr(args, "workers", None) or 5, pin_memory=True, persistent_workers = True)
     return dataloader_dirt
 
 
@@ -109,11 +109,11 @@ def getDataloaderSource(args, domain):
     train_dataset_list = datasetList[:train_num]
     test_dataset_list = datasetList[train_num:]
     train_dataset = dataset_norm(image_list = train_dataset_list, isTrian = True)
-    dataloader_dirt["train"] = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, drop_last=True, num_workers=5, pin_memory=True, persistent_workers=True)
+    dataloader_dirt["train"] = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, drop_last=True, num_workers=getattr(args, "workers", None) or 5, pin_memory=True, persistent_workers=True)
     test_dataset = dataset_norm(image_list = test_dataset_list, isTrian = False)
-    dataloader_dirt["test"] = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False, drop_last=False, num_workers=5, pin_memory=True, persistent_workers = True)
+    dataloader_dirt["test"] = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False, drop_last=False, num_workers=getattr(args, "workers", None) or 5, pin_memory=True, persistent_workers = True)
     full_dataset = dataset_norm(image_list = datasetList, isTrian = False)
-    dataloader_dirt["fulltest"] = DataLoader(full_dataset, batch_size=args.batch_size, shuffle=False, drop_last=False, num_workers=5, pin_memory=True, persistent_workers = True)
+    dataloader_dirt["fulltest"] = DataLoader(full_dataset, batch_size=args.batch_size, shuffle=False, drop_last=False, num_workers=getattr(args, "workers", None) or 5, pin_memory=True, persistent_workers = True)
     return dataloader_dirt
 
 
@@ -184,7 +184,7 @@ def getDataloaderSFDA5X(args, domain, clipProcess = None, getTrain = True):
     dataloader_dirt = dict()
     if getTrain:
         train_dataset = dataset5X(image_list = datasetList, clipProcess = clipProcess, classDetail = args.class_info, isTraining=True)
-        dataloader_dirt["train"] = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, drop_last=True, num_workers=4, pin_memory=True, persistent_workers=True)
+        dataloader_dirt["train"] = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, drop_last=True, num_workers=getattr(args, "workers", None) or 4, pin_memory=True, persistent_workers=True)
     test_dataset = dataset5X(image_list = datasetList, clipProcess = clipProcess, classDetail = args.class_info, isTraining=False)
-    dataloader_dirt["test"] = DataLoader(test_dataset, batch_size=args.batch_size * 2, shuffle=False, drop_last=False, num_workers=4, pin_memory=True, persistent_workers = True)
+    dataloader_dirt["test"] = DataLoader(test_dataset, batch_size=args.batch_size * 2, shuffle=False, drop_last=False, num_workers=getattr(args, "workers", None) or 4, pin_memory=True, persistent_workers = True)
     return dataloader_dirt

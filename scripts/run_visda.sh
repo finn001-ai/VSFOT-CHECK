@@ -17,7 +17,7 @@ PYTHON="python -u"
 GPU=0
 EPOCHS="${EPOCHS:-4}"
 
-BASE="--align_mode ot --knn_k 10 --align_view both --arch resnet101"
+BASE="--align_mode ot --knn_k 10 --align_view both --arch resnet101 --workers 12"
 CAP="--align_weight cap --align_cap 0.2"
 
 # 训练任务，格式 "组名|额外参数"；按重要性排序
