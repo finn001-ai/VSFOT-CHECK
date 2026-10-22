@@ -37,8 +37,9 @@ from diag_repr import extract
 
 SPACES = ["bottleneck", "pool2048", "clip", "cat"]
 KS = [2, 3]
-THETAS = [0.1, 0.3, 0.5]
-DELTAS = [1.0, 2.0, 3.0]
+THETAS = [0.05, 0.1, 0.2, 0.3]
+DELTAS = [2.0, 3.0, 4.0]
+LOG_FLOOR = 1e-3      # 兄弟对比的对数概率下限：训练结束时概率饱和，不截断的话极小概率的对数比是噪声
 MIN_SIZE = 5           # 小于这个大小的子簇不改名
 
 
@@ -101,7 +102,7 @@ def run(cli):
         assert zs["imgs"] == snap["imgs"], "两个快照的图片顺序不同"
         sources["zs"] = zs["vil_bank"].to(device).float()
         print(f"[zs] 冻结零样本 CLIP 准确率 {(sources['zs'].argmax(1) == y).float().mean().item():.4f}")
-    logp = {k: torch.log(v.clamp(min=1e-12)) for k, v in sources.items()}
+    logp = {k: torch.log(v.clamp(min=LOG_FLOOR)) for k, v in sources.items()}
     res = {"snapshot": cli.snapshot, "iter": snap["iter"], "N": N, "student": s_ok.float().mean().item(),
            "teacher": (q_v.argmax(1) == y).float().mean().item(), "spaces": {}}
     print(f"[参考] 学生={res['student']:.4f}  老师={res['teacher']:.4f}  错误数={int((~s_ok).sum())}")
