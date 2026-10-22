@@ -50,17 +50,18 @@ for g in "${GRPS[@]}"; do
 done
 
 echo "============================== 汇总开始（把这一段完整贴回）=============================="
-echo "## VisDA-C synthesis → real（ResNet-101，${EPOCHS} epoch，batch ${BATCH}，seed 42，最后 5 次评估均值）"
+echo "## VisDA-C synthesis → real（ResNet-101，${EPOCHS} epoch，batch ${BATCH}，seed 42；均值 = 不含第 0 步的最后至多 5 次评估）"
 echo ""
-echo "| 组 | AA（各类平均） | OA | 状态 |"
-echo "|---|---|---|---|"
+echo "| 组 | AA 均值 | AA 最后一次 | OA 均值 | 状态 |"
+echo "|---|---|---|---|---|"
 for g in "${GRPS[@]}"; do
     name="${g%%|*}"; dir="runs/$TRAIN_ROOT/$name/${TASK}_s42"
     [ -f "$dir/Detail.txt" ] || { echo "| $name | - | - | 未开始 |"; continue; }
-    aa=$(grep -o "Average Accuracy (AA): [0-9.]*" "$dir/Detail.txt" | tail -5 | awk '{s+=$NF} END {if (NR) printf "%.2f", s/NR*100}')
-    oa=$(grep -o "Overall Accuracy (OA): [0-9.]*" "$dir/Detail.txt" | tail -5 | awk '{s+=$NF} END {if (NR) printf "%.2f", s/NR*100}')
+    aa=$(grep -o "Average Accuracy (AA): [0-9.]*" "$dir/Detail.txt" | tail -n +2 | tail -5 | awk '{s+=$NF} END {if (NR) printf "%.2f", s/NR*100}')
+    aal=$(grep -o "Average Accuracy (AA): [0-9.]*" "$dir/Detail.txt" | tail -n +2 | tail -1 | awk '{printf "%.2f", $NF*100}')
+    oa=$(grep -o "Overall Accuracy (OA): [0-9.]*" "$dir/Detail.txt" | tail -n +2 | tail -5 | awk '{s+=$NF} END {if (NR) printf "%.2f", s/NR*100}')
     st=$([ -f "$dir/.done" ] && echo 完成 || echo 进行中)
-    echo "| $name | $aa | $oa | $st |"
+    echo "| $name | $aa | $aal | $oa | $st |"
 done
 echo ""
 echo "参考：COSMO 91.4，VSFOT 公开数字 90.6（论文表格，AA）"
