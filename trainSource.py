@@ -152,7 +152,7 @@ if __name__ == "__main__":
     otherDomain = args.domains.copy()
     otherDomain.remove(trainDomain)
     for nowDomain in otherDomain:
-        feature_net = resnet().cuda()
+        feature_net = resnet(res_name=args.arch).cuda()
         feature_net.load_state_dict(network["best_feature"])
         classifier_net = classifier(class_num = args.class_num).cuda()
         classifier_net.load_state_dict(network["best_classifier"])
