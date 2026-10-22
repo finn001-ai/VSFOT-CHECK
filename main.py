@@ -469,11 +469,16 @@ def start(args, target_dataloader, CLIP_model_raw):
         #   所以 const / sqrt 每一步都把「按计划质量加权的平均权重」调成和 inv 相同：损失量级不变，只改变类别之间的相对权重
         #   const = 所有类同一权重（不做均衡）；sqrt = 1/√频率（均衡推得轻一半）
         #   prior = CLIP 零样本平均概率 / 频率：把学生的预测分布推向 CLIP 估计的类分布，而不是均匀分布（Art 最不均衡，sqrt 在 Art 上 +1.2）
-        if args.clsw_mode != "inv":
+        # --clsw_mode self：进度 --clsw_self_at 之前同 inv（推向均匀，防止 CLIP 的类偏置塌缩）；到该进度时把学生记忆库的平均概率冻结为目标分布，
+        #   之后推向这个分布。诊断（archive/2026_10_23_cross）：进度 0.25 起学生的预测分布与真实先验的 L1 只有均匀分布的 1/3 ~ 2/3
+        if args.clsw_mode == "self" and iter_num == int(args.clsw_self_at * max_iter):
+            clsw_prior = MB.model_bank.mean(dim=0).clone()
+            Project.log(f"[clsw self] iter {iter_num}  冻结目标分布：最多 / 最少 = {(clsw_prior.max() / clsw_prior.min()).item():.1f}", is_print=False)
+        if args.clsw_mode != "inv" and not (args.clsw_mode == "self" and iter_num < int(args.clsw_self_at * max_iter)):
             with torch.no_grad():
                 mass = gamma1.sum(dim=1)                                                         # [C] 本批计划在各类上的质量
                 w = {"const": torch.ones_like(class_weights), "sqrt": class_weights.sqrt(),
-                     "prior": clsw_prior * class_weights, "oracle": clsw_prior * class_weights,
+                     "prior": clsw_prior * class_weights, "oracle": clsw_prior * class_weights, "self": clsw_prior * class_weights,
                      "pow": class_weights ** args.clsw_pow}[args.clsw_mode]
                 class_weights = w * (mass @ class_weights) / (mass @ w + 1e-12)
         gamma1 = gamma1 * class_weights.unsqueeze(1)
@@ -748,8 +753,8 @@ if __name__ == "__main__":
     parser.add_argument("--no_clsw", action="store_true", help="消融：对齐计划不再乘以学生预测频率的倒数（默认关闭 = 原方法）")
     parser.add_argument("--iml_ent", default=1.0, type=float, help="IM 中样本熵项的权重；1.0 = 原方法，0 = 去掉")
     parser.add_argument("--cls_lr_mult", default=0.1, type=float, help="分类头学习率相对 --lr 的倍数；0.1 = 原方法")
-    parser.add_argument("--clsw_mode", default="inv", type=str, choices=["inv", "const", "sqrt", "prior", "pow", "oracle"],
-                        help="对齐计划的类频率重加权：inv = 1/频率（原方法）；const = 不均衡；sqrt = 1/√频率；prior = CLIP 零样本平均概率 / 频率；oracle = 真实类频率 / 频率（诊断上界，用了标签）；"
+    parser.add_argument("--clsw_mode", default="inv", type=str, choices=["inv", "const", "sqrt", "prior", "pow", "oracle", "self"],
+                        help="对齐计划的类频率重加权：inv = 1/频率（原方法）；const = 不均衡；sqrt = 1/√频率；prior = CLIP 零样本平均概率 / 频率；oracle = 真实类频率 / 频率（诊断上界，用了标签）；self = 进度 --clsw_self_at 时冻结的学生平均概率 / 频率（之前同 inv）；"
                              "后三者每步把损失量级调成与 inv 相同")
     # 方向 E（2026-10-22）：Ar→Pr 的剩余错误是成对的语义混淆（Trash_Can→Bucket 19、Folder→Notebook 19、Marker→Pen 18…），
     #   被吞并的类预测数只有真实的 0.69 ~ 0.74；sqrt（更弱的均衡）在 Product 上 −1.5，试更强的均衡
@@ -761,6 +766,7 @@ if __name__ == "__main__":
     parser.add_argument("--split_release", default=1.0, type=float, help="到该训练进度撤掉改名（需 > --split_until）；1.0 = 一直用")
     parser.add_argument("--split_teacher", action="store_true", help="老师（MGVA）也学改名后的类")
     parser.add_argument("--t_flip", action="store_true", help="老师给学生的预测取原图与水平翻转图的概率平均（默认关闭）")
+    parser.add_argument("--clsw_self_at", default=0.25, type=float, help="--clsw_mode self：冻结目标分布的训练进度")
     parser.add_argument("--clsw_pow", default=1.0, type=float, help="--clsw_mode pow：权重 = 1 / 频率^p（量级同 inv）；1.0 = inv，0.5 = sqrt")
     parser.add_argument("--t_prompt", action="store_true", help="老师文本端加可学习的共享提示上下文（默认关闭 = 固定提示 'a photo of a'）")
     parser.add_argument("--t_prompt_nctx", default=4, type=int, help="--t_prompt 的上下文向量个数（用提示词前几个词初始化）")
