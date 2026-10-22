@@ -269,6 +269,10 @@ def start(args, target_dataloader, CLIP_model_raw):
         MB.initialize(target_dataloader["test"], CLIP_model_raw, feature_net, classifier_net, cls_text_features, args.device)
     # --clsw_mode prior：类均衡的目标分布 = CLIP 零样本在目标域上的平均概率（训练开始时算一次，之后固定）
     clsw_prior = MB.vil_bank.mean(dim=0).clone()
+    # --clsw_mode oracle：诊断上界，目标分布换成目标域真实类频率（用了标签，只用来判断「类先验估计」这条路的空间，不是方法）
+    if args.clsw_mode == "oracle":
+        y_all = torch.tensor([int(l) for _, l in target_dataloader["test"].dataset.imgs], device=args.device)
+        clsw_prior = torch.bincount(y_all, minlength=args.class_num).float() / len(y_all)
     # --mgva_gate agree：冻结的零样本 CLIP 预测（训练开始时的 vil_bank，之后 vil_bank 会被当前老师覆盖）
     zs_pred = MB.vil_bank.argmax(dim=1).clone() if args.mgva_gate == "agree" else None
     # --t_proto：老师的类原型（原为固定的文本嵌入）变成可学习参数，用文本嵌入初始化，和 adapter 一起由 MGVA 更新
@@ -469,7 +473,7 @@ def start(args, target_dataloader, CLIP_model_raw):
             with torch.no_grad():
                 mass = gamma1.sum(dim=1)                                                         # [C] 本批计划在各类上的质量
                 w = {"const": torch.ones_like(class_weights), "sqrt": class_weights.sqrt(),
-                     "prior": clsw_prior * class_weights,
+                     "prior": clsw_prior * class_weights, "oracle": clsw_prior * class_weights,
                      "pow": class_weights ** args.clsw_pow}[args.clsw_mode]
                 class_weights = w * (mass @ class_weights) / (mass @ w + 1e-12)
         gamma1 = gamma1 * class_weights.unsqueeze(1)
@@ -744,8 +748,8 @@ if __name__ == "__main__":
     parser.add_argument("--no_clsw", action="store_true", help="消融：对齐计划不再乘以学生预测频率的倒数（默认关闭 = 原方法）")
     parser.add_argument("--iml_ent", default=1.0, type=float, help="IM 中样本熵项的权重；1.0 = 原方法，0 = 去掉")
     parser.add_argument("--cls_lr_mult", default=0.1, type=float, help="分类头学习率相对 --lr 的倍数；0.1 = 原方法")
-    parser.add_argument("--clsw_mode", default="inv", type=str, choices=["inv", "const", "sqrt", "prior", "pow"],
-                        help="对齐计划的类频率重加权：inv = 1/频率（原方法）；const = 不均衡；sqrt = 1/√频率；prior = CLIP 零样本平均概率 / 频率；"
+    parser.add_argument("--clsw_mode", default="inv", type=str, choices=["inv", "const", "sqrt", "prior", "pow", "oracle"],
+                        help="对齐计划的类频率重加权：inv = 1/频率（原方法）；const = 不均衡；sqrt = 1/√频率；prior = CLIP 零样本平均概率 / 频率；oracle = 真实类频率 / 频率（诊断上界，用了标签）；"
                              "后三者每步把损失量级调成与 inv 相同")
     # 方向 E（2026-10-22）：Ar→Pr 的剩余错误是成对的语义混淆（Trash_Can→Bucket 19、Folder→Notebook 19、Marker→Pen 18…），
     #   被吞并的类预测数只有真实的 0.69 ~ 0.74；sqrt（更弱的均衡）在 Product 上 −1.5，试更强的均衡
