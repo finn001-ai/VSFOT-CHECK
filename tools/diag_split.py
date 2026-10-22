@@ -10,6 +10,9 @@ Ar→Pr 的剩余错误多是成对语义混淆（Trash_Can→Bucket、Folder→
     ratio θ+d  同上，且子簇特征中心离 r 类中心（各类高置信样本均值）比离 c 类中心更近
     near       只看中心距离：子簇中心离 r 更近就改名
     sample     不聚类、逐样本：样本离 r 类中心比离 c 类中心近、且 p[r] / p[c] ≥ 0.3 就改名（对照）
+    rel_S_δ    兄弟对比（第 2 轮）：子簇 g 与同类其余样本 R 比较 log p[r] − log p[c] 的均值之差，取差最大的 r，差 ≥ δ（nats）
+               且 g 不超过该类一半时改名。CLIP 的偏差同类共享，兄弟对比把它抵消；训练结束时概率饱和，线性的 ratio 规则不触发，
+               对数比仍保留排序。S = end（快照的 (学生 + 老师) / 2）或 zs（--zs_snapshot 的记忆库 = 冻结零样本 CLIP）
 指标：准确率（相对学生）、纠正（学生错 → 对）、改坏（学生对 → 错）。
 
 用法：
@@ -35,6 +38,7 @@ from diag_repr import extract
 SPACES = ["bottleneck", "pool2048", "clip", "cat"]
 KS = [2, 3]
 THETAS = [0.1, 0.3, 0.5]
+DELTAS = [1.0, 2.0, 3.0]
 MIN_SIZE = 5           # 小于这个大小的子簇不改名
 
 
@@ -91,6 +95,13 @@ def run(cli):
     avg = (q_m + q_v) / 2
     conf = avg.max(1).values
     s_ok = s_pred == y
+    sources = {"end": avg}
+    if cli.zs_snapshot:
+        zs = torch.load(cli.zs_snapshot, map_location="cpu", weights_only=False)
+        assert zs["imgs"] == snap["imgs"], "两个快照的图片顺序不同"
+        sources["zs"] = zs["vil_bank"].to(device).float()
+        print(f"[zs] 冻结零样本 CLIP 准确率 {(sources['zs'].argmax(1) == y).float().mean().item():.4f}")
+    logp = {k: torch.log(v.clamp(min=1e-12)) for k, v in sources.items()}
     res = {"snapshot": cli.snapshot, "iter": snap["iter"], "N": N, "student": s_ok.float().mean().item(),
            "teacher": (q_v.argmax(1) == y).float().mean().item(), "spaces": {}}
     print(f"[参考] 学生={res['student']:.4f}  老师={res['teacher']:.4f}  错误数={int((~s_ok).sum())}")
@@ -152,6 +163,24 @@ def run(cli):
                 if n >= MIN_SIZE and closer:
                     new[sub == g] = r
             out[f"k{k}_near"] = score(new, s_pred, y)
+            # 兄弟对比
+            for src, lp in logp.items():
+                dec = {}
+                for g in sub.unique().tolist():
+                    c = g // k
+                    m_g, m_r = sub == g, (s_pred == c) & (sub != g)
+                    n_g, n_r = int(m_g.sum()), int(m_r.sum())
+                    if n_g < MIN_SIZE or n_r < MIN_SIZE or n_g > n_r:
+                        continue
+                    diff = (lp[m_g] - lp[m_g][:, c:c + 1]).mean(0) - (lp[m_r] - lp[m_r][:, c:c + 1]).mean(0)
+                    diff[c] = -1e9
+                    dec[g] = (diff.argmax().item(), diff.max().item())
+                for dl in DELTAS:
+                    new = s_pred.clone()
+                    for g, (r, v) in dec.items():
+                        if v >= dl:
+                            new[sub == g] = r
+                    out[f"k{k}_rel_{src}_{dl:g}"] = score(new, s_pred, y)
         # 逐样本对照
         a2 = avg.clone(); a2[torch.arange(N), s_pred] = -1
         r_s = a2.argmax(1)
@@ -169,7 +198,8 @@ def run(cli):
     p2 = lambda v: f"{v * 100:.2f}"
     md = ["# 混淆类拆分诊断", "", f"快照 `{cli.snapshot}`（iter {snap['iter']}）：学生 {p2(res['student'])}，老师 {p2(res['teacher'])}，"
           f"错误 {int((~s_ok).sum())} / {N}。每格：准确率差（百分点）/ 纠正 / 改坏 / 改动样本数。", ""]
-    rules = ["oracle"] + [f"ratio{t}" + s for t in THETAS for s in ("", "+d")] + ["near"]
+    rules = ["oracle"] + [f"ratio{t}" + s for t in THETAS for s in ("", "+d")] + ["near"] + \
+            [f"rel_{src}_{dl:g}" for src in logp for dl in DELTAS]
     for k in KS:
         md += [f"## k = {k}", "", "| 规则 | " + " | ".join(SPACES) + " |", "|---|" + "---|" * len(SPACES)]
         for rl in rules:
@@ -196,6 +226,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--snapshot", type=str, required=True)
     parser.add_argument("--out", type=str, required=True)
+    parser.add_argument("--zs_snapshot", type=str, default=None, help="训练前快照（p000），用其记忆库（冻结零样本 CLIP 概率）做命名")
     parser.add_argument("--device", type=int, default=0)
     parser.add_argument("--num_workers", type=int, default=4)
     run(parser.parse_args())
