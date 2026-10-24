@@ -595,6 +595,11 @@ def start(args, target_dataloader, CLIP_model_raw):
             mgvaProb = mgvaProb.clone()
             mgvaProb[sm] = F.one_hot(fb[sm], args.class_num).float()
         top3_probs, top3_indices = torch.topk(mgvaProb, k=args.topk, dim=1)
+        # --consensus tcand：候选类仍是学生的 top-3（保留学生纠正老师的通道），候选之间的权重换成共识
+        #   分解（2026-10-24）：共识在 DN 上的增益全来自老师侧，OH 上老师侧共识 −1.6（学生后期更准，老师需要学生的候选）
+        if args.consensus == "tcand":
+            top3_indices = torch.topk(modelProb, k=args.topk, dim=1).indices
+            top3_probs = entropy_poe(clipProb, modelProb, *poe_ref).gather(1, top3_indices)
         soft_labels = torch.zeros_like(logits_clip)
         soft_labels.scatter_(1, top3_indices, top3_probs)
         soft_labels = soft_labels / (soft_labels.sum(dim=1, keepdim=True) + 1e-6)
@@ -803,8 +808,8 @@ if __name__ == "__main__":
     parser.add_argument("--t_strong", action="store_true", help="老师也在强增强视图上学同一个目标（默认关闭）")
     parser.add_argument("--t_im", default=0.0, type=float, help="老师损失加上自身预测 IM 的权重；0 = 原方法")
     # 方向 B（2026-10-22，scripts/run_cons.sh）：COSMO 式共享共识
-    parser.add_argument("--consensus", default="none", choices=["none", "teacher", "student", "both"],
-                        help="none = 原方法（老师学学生 top-3，学生学老师）；teacher = 老师学「老师 × 学生」熵加权专家乘积；student = 只有学生对齐目标换成它；both = 两边都换")
+    parser.add_argument("--consensus", default="none", choices=["none", "teacher", "student", "both", "tcand"],
+                        help="none = 原方法（老师学学生 top-3，学生学老师）；teacher = 老师学「老师 × 学生」熵加权专家乘积；student = 只有学生对齐目标换成它；both = 两边都换；tcand = 老师的候选类仍取学生 top-3，候选间权重用共识")
     parser.add_argument("--poe_weight", default="ent", choices=["ent", "rank"],
                         help="共识的专家权重：ent = 绝对熵（COSMO）；rank = 熵在各自模型全部样本中的百分位（消掉两个模型的校准差别）")
     parser.add_argument("--s_ce", default=0.0, type=float, help="学生对共识 argmax 的硬交叉熵权重；0 = 不用")
