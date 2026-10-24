@@ -9,6 +9,7 @@
 #
 #   !bash scripts/run_domainnet.sh            中途看汇总：!SUMMARY_ONLY=1 bash scripts/run_domainnet.sh
 #   只跑前 n 个任务：!N_TASKS=3 bash scripts/run_domainnet.sh
+#   VARIANT=self_ct：self + --consensus teacher（老师学老师 × 学生的熵加权共识；30% 子集 R2P / C2S / S2P +1.6 ~ 2.2），对照列为 self
 #   VARIANT=self：加 --clsw_mode self（进度 0.25 冻结学生平均概率作均衡目标；R→S 77.95 → 79.43），汇总里列出同任务的原方法作对照
 # =============================================================================
 
@@ -29,6 +30,7 @@ EXTRA="--t_strong"
 case "$VARIANT" in
     "") ;;
     self) EXTRA="$EXTRA --clsw_mode self" ;;
+    self_ct) EXTRA="$EXTRA --clsw_mode self --consensus teacher"; BASE_GROUP="cap02_tstrong_self_e${EPOCHS}" ;;
     *) echo "未知 VARIANT: $VARIANT"; exit 1 ;;
 esac
 
