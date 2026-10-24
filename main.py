@@ -20,6 +20,7 @@ import json
 from tqdm import tqdm
 import torch.nn.functional as F
 import random
+import math
 import numpy as np
 
 
@@ -135,10 +136,16 @@ def init_src_bank(feature_net, classifier_net, loader, device):
     return bank
 
 
-def entropy_poe(p, q):
-    """按熵加权的专家乘积（COSMO / ProDe 的源模型去噪思路）：r ∝ p^a · q^(1-a)，a = e^{-H(p)} / (e^{-H(p)} + e^{-H(q)})，熵越小权重越大"""
+def entropy_poe(p, q, ref_p=None, ref_q=None):
+    """按熵加权的专家乘积（COSMO / ProDe 的源模型去噪思路）：r ∝ p^a · q^(1-a)，a = e^{-H(p)} / (e^{-H(p)} + e^{-H(q)})，熵越小权重越大
+    ref_p / ref_q（--poe_weight rank）：两个专家各自全部样本熵的升序排列。熵换成「在自己模型内的百分位 × log C」再比较，
+    消掉两个模型整体校准的差别（CLIP 的 logit 乘 100，老师的熵整体比学生小，绝对熵下共识几乎总听老师，Office-Home 上学生更准时也一样）"""
     hp = -(p * torch.log(p + 1e-8)).sum(1, keepdim=True)
     hq = -(q * torch.log(q + 1e-8)).sum(1, keepdim=True)
+    if ref_p is not None:
+        logc = math.log(p.size(1))
+        hp = torch.searchsorted(ref_p, hp.contiguous()).float() / len(ref_p) * logc
+        hq = torch.searchsorted(ref_q, hq.contiguous()).float() / len(ref_q) * logc
     a = torch.exp(-hp) / (torch.exp(-hp) + torch.exp(-hq))
     return torch.softmax(a * torch.log(p + 1e-8) + (1 - a) * torch.log(q + 1e-8), dim=1)
 
@@ -409,13 +416,18 @@ def start(args, target_dataloader, CLIP_model_raw):
             #   让对齐目标在后期仍高于学生自己（静态诊断 p050：学生自身的近邻平滑比学生高 +1.0）；μ_p 仍取 CLIP 记忆库
             # --src_expert：对齐目标里的 CLIP 概率（自身和近邻的）换成 CLIP 与冻结源模型按熵加权的专家乘积；
             #   诊断：p000 时 Ar→Cl 有 407 个样本只有源模型判对，原方法训练开始后不再使用源模型
+            # --poe_weight rank：老师 / 学生记忆库里全部样本的熵（升序），共识权重按各自模型内的百分位计算
+            poe_ref = (None, None)
+            if args.poe_weight == "rank" and args.consensus != "none":
+                bank_ent = lambda b: torch.sort(-(b * torch.log(b + 1e-8)).sum(1)).values
+                poe_ref = (bank_ent(MB.vil_bank), bank_ent(MB.model_bank))
             if args.src_expert and iter_num < src_expert_iter:
                 clipAlign = entropy_poe(clipProb, src_bank[index_img])
                 vilBankAlign = entropy_poe(MB.vil_bank, src_bank)
             # --consensus both：学生对齐的目标（自身和近邻的）换成老师与学生按熵加权的专家乘积（COSMO 式共享共识，更新前的预测，detach）
-            elif args.consensus == "both":
-                clipAlign = entropy_poe(clipProb, modelProb)
-                vilBankAlign = entropy_poe(MB.vil_bank, MB.model_bank)
+            elif args.consensus in ("both", "student"):
+                clipAlign = entropy_poe(clipProb, modelProb, *poe_ref)
+                vilBankAlign = entropy_poe(MB.vil_bank, MB.model_bank, *poe_ref)
             else:
                 clipAlign, vilBankAlign = clipProb, MB.vil_bank
             if args.knn_k > 0 and iter_num >= knn_self_iter:
@@ -577,8 +589,8 @@ def start(args, target_dataloader, CLIP_model_raw):
             mgvaProb = t_ema_bank[index_img]
         # --consensus teacher / both：老师学的不再是学生的 top-3，而是老师与学生（更新前）按熵加权的专家乘积
         #   第 1 步：学生终点 ≈ 训练前并集 + 0.5，「谁教谁」才是问题；COSMO 消融里共享共识比互相监督 +1.0
-        if args.consensus != "none":
-            mgvaProb = entropy_poe(clipProb, modelProb)
+        if args.consensus in ("teacher", "both"):
+            mgvaProb = entropy_poe(clipProb, modelProb, *poe_ref)
         if split_fix is not None and args.split_teacher and sm.any():      # 老师也学改名后的类
             mgvaProb = mgvaProb.clone()
             mgvaProb[sm] = F.one_hot(fb[sm], args.class_num).float()
@@ -791,8 +803,10 @@ if __name__ == "__main__":
     parser.add_argument("--t_strong", action="store_true", help="老师也在强增强视图上学同一个目标（默认关闭）")
     parser.add_argument("--t_im", default=0.0, type=float, help="老师损失加上自身预测 IM 的权重；0 = 原方法")
     # 方向 B（2026-10-22，scripts/run_cons.sh）：COSMO 式共享共识
-    parser.add_argument("--consensus", default="none", choices=["none", "teacher", "both"],
-                        help="none = 原方法（老师学学生 top-3，学生学老师）；teacher = 老师学「老师 × 学生」熵加权专家乘积；both = 学生对齐目标也换成它")
+    parser.add_argument("--consensus", default="none", choices=["none", "teacher", "student", "both"],
+                        help="none = 原方法（老师学学生 top-3，学生学老师）；teacher = 老师学「老师 × 学生」熵加权专家乘积；student = 只有学生对齐目标换成它；both = 两边都换")
+    parser.add_argument("--poe_weight", default="ent", choices=["ent", "rank"],
+                        help="共识的专家权重：ent = 绝对熵（COSMO）；rank = 熵在各自模型全部样本中的百分位（消掉两个模型的校准差别）")
     parser.add_argument("--s_ce", default=0.0, type=float, help="学生对共识 argmax 的硬交叉熵权重；0 = 不用")
     # 方向 C（2026-10-22，scripts/run_self.sh）：学生自训练
     parser.add_argument("--s_fm", default=0.0, type=float, help="FixMatch 损失权重（弱视图自身高置信伪标签 → 强视图交叉熵）；0 = 不用")
