@@ -180,6 +180,13 @@ def getDataloaderSFDA5X(args, domain, clipProcess = None, getTrain = True):
     with open(datasetListPath, 'r') as file:
         datasetList = file.readlines()
         datasetList = [f"{os.path.join(args.image_root, domain, list_item.split()[0])},{list_item.split()[1]}" for list_item in datasetList]
+    frac = getattr(args, "data_frac", 1.0)
+    if frac < 1.0:      # --data_frac：每类按比例取固定子集（独立的随机数，与 --seed 无关，所有变体用同一个子集），用于快速筛选
+        by_cls = {}
+        for item in sorted(datasetList):
+            by_cls.setdefault(item.rsplit(",", 1)[1], []).append(item)
+        rng = random.Random(0)
+        datasetList = [x for c in sorted(by_cls) for x in rng.sample(by_cls[c], max(1, round(len(by_cls[c]) * frac)))]
     random.shuffle(datasetList)
     dataloader_dirt = dict()
     if getTrain:
