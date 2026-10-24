@@ -506,6 +506,10 @@ def start(args, target_dataloader, CLIP_model_raw):
             weight_align = 1.0
         elif args.align_weight == "cap":
             weight_align = min(args.align_cap, progress * 2)
+        # --align_norm_c：对齐损失乘了 1/频率的类权重（均值约为类别数 C），量级随 C 线性变化（Align / C：OH 1.13、VisDA 0.93、DN 1.36，
+        #   IML 基本不变），同一个权重曲线在 VisDA 上太弱、在 DN 上太强。乘以 参考 C / C，参考取定 cap 时的 Office-Home（65）：OH 完全不变
+        if args.align_norm_c > 0:
+            weight_align = weight_align * args.align_norm_c / args.class_num
 
         loss1 = args.weightalign * weight_align * loss_align + \
                 args.weightctr * loss_ctr + \
@@ -745,6 +749,7 @@ if __name__ == "__main__":
     parser.add_argument("--align_weight", default="ramp", type=str, choices=["ramp", "const", "cap"],
                         help="对齐权重的进度曲线：ramp = min(1, 2·进度)（原方法）；const = 1；cap = min(--align_cap, 2·进度)")
     parser.add_argument("--align_cap", default=0.2, type=float, help="--align_weight cap 的上限（0.2 = 进度 0.1 时达到）")
+    parser.add_argument("--align_norm_c", default=0, type=float, help="对齐权重乘以 该值 / 类别数（按类别数归一化对齐损失量级；65 = 以 Office-Home 为参考，OH 不变）；0 = 关闭")
     parser.add_argument("--vil_after", default=1.0, type=float, help="到该训练进度后 MGVA（老师 adapter）的学习率乘以 --vil_low；1.0 = 不启用（原方法）")
     parser.add_argument("--vil_low", default=1.0, type=float, help="--vil_after 之后 MGVA 学习率的倍数（0 = 等价于冻结老师）")
     parser.add_argument("--src_expert", action="store_true",
