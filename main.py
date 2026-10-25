@@ -485,6 +485,17 @@ def start(args, target_dataloader, CLIP_model_raw):
         #   之后推向这个分布。诊断（archive/2026_10_23_cross）：进度 0.25 起学生的预测分布与真实先验的 L1 只有均匀分布的 1/3 ~ 2/3
         if args.clsw_mode == "self" and iter_num == int(args.clsw_self_at * max_iter):
             clsw_prior = MB.model_bank.mean(dim=0).clone()
+            # --clsw_self_em：冻结前学生是在「推向均匀」的目标下训练的，平均概率会把先验压向均匀（VisDA：car 真实 18.8%，冻结时只有 14.3%，
+            #   最多 / 最少 3.3 vs 真实 5.1）。按标签偏移的 EM（Saerens et al. 2002，MLLS）把训练先验当作均匀，迭代到收敛重估目标先验
+            if args.clsw_self_em:
+                with torch.no_grad():
+                    for _ in range(100):
+                        q = MB.model_bank * clsw_prior
+                        new_prior = (q / q.sum(dim=1, keepdim=True)).mean(dim=0)
+                        if (new_prior - clsw_prior).abs().sum() < 1e-6:
+                            break
+                        clsw_prior = new_prior
+                    clsw_prior = new_prior
             Project.log(f"[clsw self] iter {iter_num}  冻结目标分布：最多 / 最少 = {(clsw_prior.max() / clsw_prior.min()).item():.1f}", is_print=False)
         if args.clsw_mode != "inv" and not (args.clsw_mode == "self" and iter_num < int(args.clsw_self_at * max_iter)):
             with torch.no_grad():
@@ -776,6 +787,7 @@ if __name__ == "__main__":
     parser.add_argument("--no_clsw", action="store_true", help="消融：对齐计划不再乘以学生预测频率的倒数（默认关闭 = 原方法）")
     parser.add_argument("--iml_ent", default=1.0, type=float, help="IM 中样本熵项的权重；1.0 = 原方法，0 = 去掉")
     parser.add_argument("--cls_lr_mult", default=0.1, type=float, help="分类头学习率相对 --lr 的倍数；0.1 = 原方法")
+    parser.add_argument("--clsw_self_em", action="store_true", help="--clsw_mode self 冻结时用标签偏移 EM（MLLS，训练先验视为均匀）重估目标分布，而不是直接取平均概率")
     parser.add_argument("--clsw_mode", default="inv", type=str, choices=["inv", "const", "sqrt", "prior", "pow", "oracle", "self"],
                         help="对齐计划的类频率重加权：inv = 1/频率（原方法）；const = 不均衡；sqrt = 1/√频率；prior = CLIP 零样本平均概率 / 频率；oracle = 真实类频率 / 频率（诊断上界，用了标签）；self = 进度 --clsw_self_at 时冻结的学生平均概率 / 频率（之前同 inv）；"
                              "后三者每步把损失量级调成与 inv 相同")
