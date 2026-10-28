@@ -97,6 +97,47 @@ def save_samples(path, hist, iter_num, cur):
     np.savez_compressed(path, label=cur["label"].cpu().numpy(), **{k: np.array(v) for k, v in hist.items()})
 
 
+def eval_rich(feature_net, classifier_net, CLIP_model, cls_text, loader, device, text_fn=None, with_feat=False):
+    """--log_rich：学生 / 老师在目标域全部图片上的完整概率（原图和水平翻转各一份），可选两边的 L2 归一化特征；不影响训练过程"""
+    rng_state = get_rng_state()
+    feature_net.eval(); CLIP_model.eval()
+    N = len(loader.dataset)
+    out = {}
+    with torch.no_grad():
+        tf = text_fn() if text_fn is not None else CLIP_model.encode_text(cls_text)
+        tf = F.normalize(tf.float(), dim=-1)
+        for item in loader:
+            idx = item["index"].to(device)
+            for flip, sfx in ((False, ""), (True, "_flip")):
+                x, xc = item["img"].to(device).float(), item["clip_img"].to(device).float()
+                if flip:
+                    x, xc = torch.flip(x, dims=[3]), torch.flip(xc, dims=[3])
+                f = feature_net(x)
+                ps = torch.softmax(classifier_net(f), dim=1)
+                vf = F.normalize(CLIP_model.encode_image(xc).float(), dim=-1)
+                pt = torch.softmax(100 * vf @ tf.T, dim=1)
+                vals = {"s_prob" + sfx: ps, "t_prob" + sfx: pt}
+                if with_feat and not flip:
+                    vals.update({"s_feat": F.normalize(f.float(), dim=-1), "t_feat": vf})
+                for k, v in vals.items():
+                    if k not in out:
+                        out[k] = torch.zeros(N, v.shape[1], dtype=torch.float16, device=device)
+                    out[k][idx] = v.half()
+    CLIP_model.train()
+    set_rng_state(rng_state)
+    return {k: v.cpu().numpy() for k, v in out.items()}
+
+
+def save_rich(root, hist, iter_num, cur, label):
+    """概率每次都存（rich.npz，[评估次数, N, C]）；特征只在 with_feat 的评估存，单独一个文件 rich_feat_<iter>.npz"""
+    hist.setdefault("iter", []).append(iter_num)
+    for k in ("s_prob", "t_prob", "s_prob_flip", "t_prob_flip"):
+        hist.setdefault(k, []).append(cur[k])
+    np.savez(os.path.join(root, "rich.npz"), label=label, **{k: np.array(v) for k, v in hist.items()})
+    if "s_feat" in cur:
+        np.savez(os.path.join(root, f"rich_feat_{iter_num:05d}.npz"), s_feat=cur["s_feat"], t_feat=cur["t_feat"])
+
+
 def init_feat_bank(feature_net, loader, device):
     """学生特征库：目标域每张图的学生特征（L2 归一化），用测试变换做一遍前向初始化"""
     # 遍历 DataLoader 会消耗随机数，先保存再恢复，保证之后的训练随机序列和不开 --knn_k 时完全一致
@@ -357,6 +398,11 @@ def start(args, target_dataloader, CLIP_model_raw):
         if args.log_samples:
             save_samples(samples_path, samples_hist, 0, dyn_prev)
         r = log_dynamics(dyn_path, 0, 0, dyn_prev, None, {}, model_optimizer.param_groups[1]["lr"])
+        if args.log_rich:
+            rich_hist, rich_n = {}, 0
+            rich_label = dyn_prev["label"].cpu().numpy()
+            save_rich(Project.root_path, rich_hist, 0, eval_rich(feature_net, classifier_net, CLIP_model, cls_text, target_dataloader["test"],
+                                                                 args.device, text_fn, with_feat=True), rich_label)
         tqdm.write(f"[dyn] iter 0  学生 {r['student_acc']:.4f}  老师 {r['teacher_acc']:.4f}  一致率 {r['agree']:.3f}")
 
     # 进度条代替逐步打印；每一步的损失仍完整写入 run_log.txt
@@ -734,6 +780,10 @@ def start(args, target_dataloader, CLIP_model_raw):
                 cur = eval_dynamics(feature_net, classifier_net, CLIP_model, cls_text, target_dataloader["test"], args.device, text_fn)
                 if args.log_samples:
                     save_samples(samples_path, samples_hist, iter_num, cur)
+                if args.log_rich:
+                    rich_n += 1      # 特征每 4 次评估存一次
+                    save_rich(Project.root_path, rich_hist, iter_num, eval_rich(feature_net, classifier_net, CLIP_model, cls_text,
+                              target_dataloader["test"], args.device, text_fn, with_feat=rich_n % 4 == 0), rich_label)
                 r = log_dynamics(dyn_path, iter_num, now_epoch, cur, dyn_prev, dyn_acc, model_optimizer.param_groups[1]["lr"])
                 tqdm.write(f"[dyn] iter {iter_num:4d}  老师 {r['teacher_acc']:.4f}  一致率 {r['agree']:.3f}  两边都错 {r['both_wrong']}  "
                            f"翻转 学生 {r['student_flip']:.3f} / 老师 {r['teacher_flip']:.3f}  伪标签 {r['pl_gamma_acc']:.4f}")
@@ -789,6 +839,8 @@ if __name__ == "__main__":
 
     parser.add_argument("--log_samples", action="store_true",
                         help="和 --log_dynamics 一起用：每次记录时另存逐样本的学生 / 老师预测和熵到 samples.npz；不影响训练过程")
+    parser.add_argument("--log_rich", action="store_true",
+                        help="和 --log_dynamics 一起用：每次记录时另存学生 / 老师的完整概率（含水平翻转）到 rich.npz，每 4 次另存两边特征；不影响训练过程")
     parser.add_argument("--freeze_teacher_at", default=1.0, type=float,
                         help="训练到该进度后不再更新老师（CLIP adapter），如 0.2；1.0 = 不冻结（原方法）")
     parser.add_argument("--knn_self_after", default=1.0, type=float,
@@ -858,6 +910,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     assert not args.knn_mgva or args.knn_k > 0, "--knn_mgva 需要 --knn_k > 0"
     assert not args.log_samples or args.log_dynamics, "--log_samples 需要 --log_dynamics"
+    assert not args.log_rich or args.log_dynamics, "--log_rich 需要 --log_dynamics"
     assert args.knn_self_after >= 1.0 or args.knn_k > 0, "--knn_self_after 需要 --knn_k > 0"
     assert not args.src_expert or args.knn_self_after >= 1.0, "--src_expert 不和 --knn_self_after 同时使用"
     assert not (args.t_ema and args.knn_mgva), "--t_ema 不和 --knn_mgva 同时使用"
