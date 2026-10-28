@@ -666,6 +666,17 @@ def start(args, target_dataloader, CLIP_model_raw):
         #   第 1 步：学生终点 ≈ 训练前并集 + 0.5，「谁教谁」才是问题；COSMO 消融里共享共识比互相监督 +1.0
         if args.consensus in ("teacher", "both"):
             mgvaProb = entropy_poe(clipProb, modelProb, *poe_ref)
+            # --ct_bal：老师学的共识也做学生侧同样的类均衡。诊断（archive/2026_10_28_q1028）：Clipart 上零样本 CLIP 一开始把 Computer 判成 Monitor
+            #   （老师预测 10 / 真实 99，Monitor 446），不加共识时学生侧 1/频率均衡把 Computer 拉回、老师跟着学生恢复；加共识后老师部分在学自己，
+            #   老师侧没有类均衡，初始偏差锁死，整类被吞（Computer 107 → 0）。这里把共识在全部样本上的类边际 m（记忆库上的同一个专家乘积）
+            #   矫正到学生侧的目标分布 r：inv / self 冻结前 = 均匀，self 冻结后 / prior / oracle = clsw_prior；q ∝ 共识 · r / m
+            if args.ct_bal:
+                with torch.no_grad():
+                    m = torch.clamp(entropy_poe(MB.vil_bank, MB.model_bank, *poe_ref).mean(dim=0), min=1e-4)
+                    use_prior = args.clsw_mode in ("prior", "oracle") or (args.clsw_mode == "self" and iter_num >= int(args.clsw_self_at * max_iter))
+                    r = clsw_prior if use_prior else torch.full_like(m, 1.0 / args.class_num)
+                    mgvaProb = mgvaProb * (r / m).unsqueeze(0)
+                    mgvaProb = mgvaProb / mgvaProb.sum(dim=1, keepdim=True)
         if split_fix is not None and args.split_teacher and sm.any():      # 老师也学改名后的类
             mgvaProb = mgvaProb.clone()
             mgvaProb[sm] = F.one_hot(fb[sm], args.class_num).float()
@@ -897,6 +908,8 @@ if __name__ == "__main__":
     # 方向 B（2026-10-22，scripts/run_cons.sh）：COSMO 式共享共识
     parser.add_argument("--consensus", default="none", choices=["none", "teacher", "student", "both", "tcand"],
                         help="none = 原方法（老师学学生 top-3，学生学老师）；teacher = 老师学「老师 × 学生」熵加权专家乘积；student = 只有学生对齐目标换成它；both = 两边都换；tcand = 老师的候选类仍取学生 top-3，候选间权重用共识")
+    parser.add_argument("--ct_bal", action="store_true",
+                        help="和 --consensus teacher / both 一起用：老师学的共识按记忆库上的类边际矫正到学生侧类均衡的目标分布（均匀或 clsw_prior）")
     parser.add_argument("--poe_weight", default="ent", choices=["ent", "rank"],
                         help="共识的专家权重：ent = 绝对熵（COSMO）；rank = 熵在各自模型全部样本中的百分位（消掉两个模型的校准差别）")
     parser.add_argument("--s_ce", default=0.0, type=float, help="学生对共识 argmax 的硬交叉熵权重；0 = 不用")
@@ -911,6 +924,7 @@ if __name__ == "__main__":
     assert not args.knn_mgva or args.knn_k > 0, "--knn_mgva 需要 --knn_k > 0"
     assert not args.log_samples or args.log_dynamics, "--log_samples 需要 --log_dynamics"
     assert not args.log_rich or args.log_dynamics, "--log_rich 需要 --log_dynamics"
+    assert not args.ct_bal or args.consensus in ("teacher", "both"), "--ct_bal 需要 --consensus teacher / both"
     assert args.knn_self_after >= 1.0 or args.knn_k > 0, "--knn_self_after 需要 --knn_k > 0"
     assert not args.src_expert or args.knn_self_after >= 1.0, "--src_expert 不和 --knn_self_after 同时使用"
     assert not (args.t_ema and args.knn_mgva), "--t_ema 不和 --knn_mgva 同时使用"
