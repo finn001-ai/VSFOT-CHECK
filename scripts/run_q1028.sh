@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-# 2026-10-28 队列（seed 42），两步按顺序跑，每步两组并行
+# 2026-10-28 队列（seed 42），全部串行（一个 OH 任务占约 24G 显存，两组并行会 OOM）
 #   第 1 步：Office-Home Cl→Ar 补析因的两格（40 epoch）
 #     Cl→Ar 上「学生 > 老师」的评估点比例只有 0.17，接近 DN / VisDA（0.00 ~ 0.07），但从来没加过老师侧共识。
 #     cap02_tstrong_ct      = cap02_tstrong + --consensus teacher                （inv + 共识）
@@ -47,17 +47,18 @@ run_one() {
     if [ -f "runs/$dir/.done" ]; then echo "==> $dir：已完成，跳过"; return 0; fi
     if [ -d "runs/$dir" ]; then echo "[错误] runs/$dir 已存在但没有完成标记（可能上次中断），请改名后重跑"; return 1; fi
     echo "==> 开始 $dir  参数：$extra"
-    # $extra 不加引号，让它拆成多个参数
-    $PYTHON main.py --device "$GPU" --name "$dir" --dataset "$ds" --source "$s" --target "$t" --seed 42 $extra \
-        > "runs/q1028_logs/$(echo "$dir" | tr / _).log" 2>&1
+    # $extra 不加引号，让它拆成多个参数；调用方带 || 时 set -e 不生效，所以显式检查退出码，失败不写完成标记
+    if ! $PYTHON main.py --device "$GPU" --name "$dir" --dataset "$ds" --source "$s" --target "$t" --seed 42 $extra \
+        > "runs/q1028_logs/$(echo "$dir" | tr / _).log" 2>&1; then
+        echo "[错误] $dir 训练失败，见 runs/q1028_logs/"; return 1
+    fi
     touch "runs/$dir/.done"
     echo "==> 完成 $dir"
 }
 
 run_step() {
-    local pids=() rc=0
-    for item in "$@"; do run_one "$item" & pids+=($!); done
-    for p in "${pids[@]}"; do wait "$p" || rc=1; done
+    local rc=0
+    for item in "$@"; do run_one "$item" || rc=1; done
     return $rc
 }
 
