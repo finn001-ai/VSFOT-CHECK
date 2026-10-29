@@ -369,6 +369,12 @@ def start(args, target_dataloader, CLIP_model_raw):
     #   --t_strong：老师在强增强视图上也学同一个目标（损失取平均），给老师一个视图一致性约束
     #   --t_im：老师的损失加上它自己预测的 IM（熵 + diversity），一个不依赖学生的学习信号
     t_ema_bank = MB.model_bank.clone() if args.t_ema else None
+    # --s_ema：学生（特征网络 + 分类头）权重和 BN 统计量的指数滑动平均，时间常数 --s_ema 个 epoch；只用于评估，不参与训练（训练与不加时逐位相同）
+    #   VisDA 全量两次在 iter 24220 train 类瞬时掉到 58%（BN 统计量被最近的 batch 带偏，archive/2026_10_23_cross），EMA 把这种抖动平滑掉
+    ema_nets, ema_decay = None, 0.0
+    if args.s_ema > 0:
+        ema_nets = (copy.deepcopy(feature_net), copy.deepcopy(classifier_net))
+        ema_decay = 1.0 - 1.0 / max(args.s_ema * epoch_iter_num, 1.0)
     IML_t = InformationMaximizationLoss(trade_off=1.0) if args.t_im > 0 else None
     # 强增强视图是 ImageNet 归一化的 224 图，换成 CLIP 的归一化（同尺寸，不需要重新读图，不消耗额外随机数）
     in_mean = torch.tensor([0.485, 0.456, 0.406], device=args.device).view(1, 3, 1, 1)
@@ -644,6 +650,16 @@ def start(args, target_dataloader, CLIP_model_raw):
         model_optimizer.zero_grad()
         loss1.backward()
         model_optimizer.step()
+        if ema_nets is not None:
+            with torch.no_grad():
+                for ema_m, m in zip(ema_nets, (feature_net, classifier_net)):
+                    for pe, pm in zip(ema_m.parameters(), m.parameters()):
+                        pe.mul_(ema_decay).add_(pm.detach(), alpha=1 - ema_decay)
+                    for be, bm in zip(ema_m.buffers(), m.buffers()):
+                        if be.dtype.is_floating_point:
+                            be.mul_(ema_decay).add_(bm, alpha=1 - ema_decay)
+                        else:
+                            be.copy_(bm)
 
         #########################################################
 
@@ -813,6 +829,14 @@ def start(args, target_dataloader, CLIP_model_raw):
             log_str = f'Task: SFDA, Test Target, {args.source} -> {args.target}, Iter: {iter_num:4d}/{max_iter:4d}; Now Acc: {acc_total:.4f}; Best Acc: {best_acc:.4f}'
             Project.log(log_str, is_print=False)
             tqdm.write(f"[eval] iter {iter_num:4d}/{max_iter}  acc {acc_total:.4f}  best {best_acc:.4f}")
+            if ema_nets is not None:
+                rng_state = get_rng_state()
+                with torch.no_grad():
+                    _, ema_oa, ema_aa, ema_class_acc = modeleval(args, ema_nets[0], ema_nets[1], target_dataloader["test"])
+                set_rng_state(rng_state)
+                Project.log(lineClassAcc(args, ema_class_acc, iter_num, header=False), filename="ModellineAcc_ema.txt", is_print=False, haveTime=False)
+                Project.log(f"[ema] iter {iter_num}  OA {ema_oa:.4f}  AA {ema_aa:.4f}（原 OA {model_oa:.4f}  AA {model_aa:.4f}）", is_print=False)
+                tqdm.write(f"[ema] iter {iter_num:4d}/{max_iter}  acc {ema_oa:.4f}  aa {ema_aa:.4f}")
             if args.eval_bn_recal:
                 _, bn_oa, bn_aa, bn_class_acc = bn_recal_eval(args, feature_net, classifier_net, target_dataloader["test"])
                 Project.log(lineClassAcc(args, bn_class_acc, iter_num, header=False), filename="ModellineAcc_bnrecal.txt", is_print=False, haveTime=False)
@@ -902,6 +926,7 @@ if __name__ == "__main__":
     parser.add_argument("--no_clsw", action="store_true", help="消融：对齐计划不再乘以学生预测频率的倒数（默认关闭 = 原方法）")
     parser.add_argument("--iml_ent", default=1.0, type=float, help="IM 中样本熵项的权重；1.0 = 原方法，0 = 去掉")
     parser.add_argument("--cls_lr_mult", default=0.1, type=float, help="分类头学习率相对 --lr 的倍数；0.1 = 原方法")
+    parser.add_argument("--s_ema", default=0.0, type=float, help="学生权重 + BN 统计量的 EMA，时间常数（epoch 数）；只额外评估、记录 ModellineAcc_ema.txt，不影响训练；0 = 关闭")
     parser.add_argument("--eval_bn_recal", action="store_true", help="诊断：每次评估另外记录「BN 统计量在目标域上重估后」的准确率（ModellineAcc_bnrecal.txt），不影响训练和原指标")
     parser.add_argument("--clsw_self_em", action="store_true", help="--clsw_mode self 冻结时用标签偏移 EM（MLLS，训练先验视为均匀）重估目标分布，而不是直接取平均概率")
     parser.add_argument("--clsw_mode", default="inv", type=str, choices=["inv", "const", "sqrt", "prior", "pow", "oracle", "self"],
