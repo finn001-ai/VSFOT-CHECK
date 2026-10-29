@@ -667,7 +667,19 @@ def start(args, target_dataloader, CLIP_model_raw):
         # --ct_until：老师侧共识只在进度 < 该值时使用，之后老师改回学学生 top-k（原方法）。曲线（archive/2026_10_28_q1028）：共识在第 2–4 次评估
         #   所有任务都 +0.7 ~ +2.6（老师更准的早期），后期在学生领先的 →Cl / →Pr 上转负（Ar2Cl −2.7）；交叉点约在进度 7.5% ~ 12.5%（2026_10_17_collapse）
         if args.consensus in ("teacher", "both") and iter_num < int(args.ct_until * max_iter):
+            base_mgva = mgvaProb
             mgvaProb = entropy_poe(clipProb, modelProb, *poe_ref)
+            # --ct_marg：类级边际分歧门控。不判断样本上谁更准（两条谱系不可辨识），只看两边对「每类有多少张」的估计：记忆库上老师 / 学生 argmax
+            #   张数相差超过 --ct_marg_thr 倍的类不做融合，老师学原目标（学生 top-k）。诊断（tools/diag_marg.py）：→Cl 上标出的正是被吞的类
+            #   （Ar2Cl Computer 第 1 次评估 老师 6 / 学生 27 / 真实 99），→Ar 上几乎不触发（保留共识收益）
+            if args.ct_marg:
+                with torch.no_grad():
+                    ct = torch.bincount(MB.vil_bank.argmax(dim=1), minlength=args.class_num).float()
+                    cs = torch.bincount(MB.model_bank.argmax(dim=1), minlength=args.class_num).float()
+                    flag = torch.log((ct + 1) / (cs + 1)).abs() > math.log(args.ct_marg_thr)
+                    sel = flag[clipProb.argmax(dim=1)] | flag[modelProb.argmax(dim=1)]
+                    if sel.any():
+                        mgvaProb = torch.where(sel.unsqueeze(1), base_mgva, mgvaProb)
             # --ct_bal：老师学的共识也做学生侧同样的类均衡。诊断（archive/2026_10_28_q1028）：Clipart 上零样本 CLIP 一开始把 Computer 判成 Monitor
             #   （老师预测 10 / 真实 99，Monitor 446），不加共识时学生侧 1/频率均衡把 Computer 拉回、老师跟着学生恢复；加共识后老师部分在学自己，
             #   老师侧没有类均衡，初始偏差锁死，整类被吞（Computer 107 → 0）。这里把共识在全部样本上的类边际 m（记忆库上的同一个专家乘积）
@@ -912,6 +924,9 @@ if __name__ == "__main__":
                         help="none = 原方法（老师学学生 top-3，学生学老师）；teacher = 老师学「老师 × 学生」熵加权专家乘积；student = 只有学生对齐目标换成它；both = 两边都换；tcand = 老师的候选类仍取学生 top-3，候选间权重用共识")
     parser.add_argument("--ct_bal", action="store_true",
                         help="和 --consensus teacher / both 一起用：老师学的共识按记忆库上的类边际矫正到学生侧类均衡的目标分布（均匀或 clsw_prior）")
+    parser.add_argument("--ct_marg", action="store_true",
+                        help="和 --consensus teacher / both 一起用：老师 / 学生记忆库上预测张数相差超过 --ct_marg_thr 倍的类不做融合，老师学原目标")
+    parser.add_argument("--ct_marg_thr", default=3.0, type=float, help="--ct_marg 的张数比阈值")
     parser.add_argument("--ct_until", default=1.0, type=float,
                         help="老师侧共识（--consensus teacher / both）只在训练进度 < 该值时使用，之后老师学学生 top-k；1.0 = 全程")
     parser.add_argument("--poe_weight", default="ent", choices=["ent", "rank"],
@@ -929,6 +944,7 @@ if __name__ == "__main__":
     assert not args.log_samples or args.log_dynamics, "--log_samples 需要 --log_dynamics"
     assert not args.log_rich or args.log_dynamics, "--log_rich 需要 --log_dynamics"
     assert not args.ct_bal or args.consensus in ("teacher", "both"), "--ct_bal 需要 --consensus teacher / both"
+    assert not args.ct_marg or args.consensus in ("teacher", "both"), "--ct_marg 需要 --consensus teacher / both"
     assert args.knn_self_after >= 1.0 or args.knn_k > 0, "--knn_self_after 需要 --knn_k > 0"
     assert not args.src_expert or args.knn_self_after >= 1.0, "--src_expert 不和 --knn_self_after 同时使用"
     assert not (args.t_ema and args.knn_mgva), "--t_ema 不和 --knn_mgva 同时使用"
