@@ -654,6 +654,12 @@ def start(args, target_dataloader, CLIP_model_raw):
         clipTextFeatGrad = clipTextFeatGrad / clipTextFeatGrad.norm(dim=-1, keepdim=True)
         if args.t_proto:
             clipTextFeatGrad = F.normalize(t_proto, dim=1)
+        # --ct_prompt：老师拆成两路。adapter（图像侧）照原方法学学生 top-k（MGVA，文本特征 detach）；提示上下文（文本侧）学老师与学生的专家乘积共识
+        #   （图像特征 detach）。依据：adapter 老师学共识 ≈ 拟合自己，CLIP 偏差锁死、整类被吞（archive/2026_10_28_q1028）；只学提示 + 共识时
+        #   没有整类被吞（Pr2Cl Clipboards 80 vs 0），但去掉 adapter 后老师太弱（→Ar −3 ~ −4，run_pc.sh）。共识只能经低容量的共享上下文作用到类别层面
+        ctxTextFeat = None
+        if args.ct_prompt:
+            ctxTextFeat, clipTextFeatGrad = clipTextFeatGrad, clipTextFeatGrad.detach()
 
         logits_clip = (100.0 * clipFeatWGrad @ clipTextFeatGrad.T)
 
@@ -734,6 +740,16 @@ def start(args, target_dataloader, CLIP_model_raw):
             clipFeatS = clipFeatS / clipFeatS.norm(dim=-1, keepdim=True)
             log_vil_s = torch.log(torch.softmax(100.0 * clipFeatS @ clipTextFeatGrad.T, dim=1) + 1e-6)
             loss_vil = (loss_vil + (torch.sum(soft_labels * (log_soft_labels - log_vil_s), dim=1) * mgva_mask).sum() / n_keep) / 2
+        if args.ct_prompt:
+            with torch.no_grad():
+                cons = entropy_poe(clipProb, modelProb, *poe_ref)
+                c_probs, c_idx = torch.topk(cons, k=args.topk, dim=1)        # 与 MGVA 目标同样的 top-k → 归一化 → softmax(10·) 处理
+                cons_soft = torch.zeros_like(cons).scatter_(1, c_idx, c_probs)
+                cons_soft = torch.softmax(cons_soft / (cons_soft.sum(dim=1, keepdim=True) + 1e-6) * 10, dim=1)
+                log_cons = torch.log(cons_soft + 1e-6)
+            views = [clipFeatWGrad.detach()] + ([clipFeatS.detach()] if args.t_strong else [])
+            loss_pc = sum(torch.sum(cons_soft * (log_cons - torch.log_softmax(100.0 * v @ ctxTextFeat.T, dim=1)), dim=1).mean() for v in views) / len(views)
+            loss_vil = loss_vil + loss_pc
         if args.t_im > 0:
             loss_vil = loss_vil + args.t_im * IML_t(probs_vil)
         # --t_proto_reg：把原型拉向初始文本嵌入（1 − 余弦相似度的类平均），保留语义锚点、防止漂移（离线迭代修正会越修越偏）
@@ -927,6 +943,8 @@ if __name__ == "__main__":
     parser.add_argument("--ct_marg", action="store_true",
                         help="和 --consensus teacher / both 一起用：老师 / 学生记忆库上预测张数相差超过 --ct_marg_thr 倍的类不做融合，老师学原目标")
     parser.add_argument("--ct_marg_thr", default=3.0, type=float, help="--ct_marg 的张数比阈值")
+    parser.add_argument("--ct_prompt", action="store_true",
+                        help="和 --t_prompt 一起用：adapter 学学生 top-k（原方法），提示上下文学老师与学生的专家乘积共识（两路梯度分开）")
     parser.add_argument("--ct_until", default=1.0, type=float,
                         help="老师侧共识（--consensus teacher / both）只在训练进度 < 该值时使用，之后老师学学生 top-k；1.0 = 全程")
     parser.add_argument("--poe_weight", default="ent", choices=["ent", "rank"],
@@ -950,6 +968,7 @@ if __name__ == "__main__":
     assert not (args.t_ema and args.knn_mgva), "--t_ema 不和 --knn_mgva 同时使用"
     assert not (args.t_prompt and args.t_proto), "--t_prompt 不和 --t_proto 同时使用"
     assert not args.no_adapter or args.t_prompt, "--no_adapter 需要 --t_prompt"
+    assert not args.ct_prompt or (args.t_prompt and not args.no_adapter and args.consensus == "none"), "--ct_prompt 需要 --t_prompt，不和 --no_adapter / --consensus 同时使用"
     assert not (args.consensus == "both" and args.src_expert), "--consensus both 不和 --src_expert 同时使用"
     assert not args.s_aad > 0 or args.knn_k > 0, "--s_aad 需要 --knn_k > 0"
     assert not (args.s_fm > 0 and args.mgva_gate != "none"), "--s_fm 借用 MGVA 保留的记录列，不和 --mgva_gate 同时使用"
