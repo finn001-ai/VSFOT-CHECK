@@ -1,110 +1,81 @@
 #!/usr/bin/env bash
 # =============================================================================
-# cap02 的多种子结果（2026-10-19）：Office-Home 12 个任务 seed 42 上 cap02 平均 86.21（底座 85.57，+0.65，12 / 12 个任务都提升），
-#   COSMO 86.4 是 3 个种子的均值，单种子差 0.19 在种子波动范围内，必须补种子才能比较。
-#   这一轮：12 个任务 × cap02 × seed 0、1（Ar→Cl 已有，自动跳过），共 22 组；
-#   之后如需底座的 3 种子对照，把下面 BASE_SEEDS 那一行取消注释（再加 22 组）。
-#   每组 18–57 分钟（Re 为目标域的任务最慢，图片大、数据加载占主导），22 组约 12 小时；中断后重跑会跳过已完成的组。
+# 2026-10-29 Office-Home 主配置 cap02_tstrong 补种子（seed 0、1；seed 42 已有），40 epoch，串行
+#   seed 42：12 任务平均 86.50，COSMO 86.41 ± 0.084（3 个种子，逐任务标准差平均 0.199）。单种子 +0.09 在噪声范围内，补种子才能下结论。
+#   老师侧共识在 OH 上的 10 种变体都不超过不加共识（archive/2026_10_28_q1028），OH 主配置定为不加共识。参数与 run_tstrong12.sh 相同，只换种子。
+#   顺序：先跑完 seed 0 的 12 个任务（约 5.5 小时，可先看两种子平均），再跑 seed 1。
 #
-# 在 Jupyter 里运行（项目根目录下）：
-#   !bash scripts/run_seeds.sh
-# 把「汇总开始」到「汇总结束」之间贴回即可，不用下载
+#   !bash scripts/run_seeds.sh            中途看汇总：!SUMMARY_ONLY=1 bash scripts/run_seeds.sh
 # =============================================================================
 
 set -euo pipefail
-
-# -----------------------------------------------------------------------------
-# 配置
-# -----------------------------------------------------------------------------
-DATASET="OfficeHomeDataset"
-PYTHON="python -u"
-GPU=0
-EPOCHS=40              # README 命令的设置
-
-BASE="--align_mode ot --knn_k 10 --align_view both"
-
-CAP="--align_weight cap --align_cap 0.2"
-
-# 训练任务，格式 "组名|源域:目标域|种子|额外参数"
-JOBS=()
-DOMAINS=(art clipart product realworld)
-for seed in 0 1; do
-    for src in "${DOMAINS[@]}"; do
-        for tgt in "${DOMAINS[@]}"; do
-            [ "$src" = "$tgt" ] && continue
-            JOBS+=("both_cap02|$src:$tgt|$seed|$BASE $CAP")
-            # BASE_SEEDS：底座的 3 种子对照，需要时取消注释
-            # JOBS+=("both_ramp|$src:$tgt|$seed|$BASE")
-        done
-    done
-done
-
-# 和 scripts/run_weight.sh 同一个目录
-TRAIN_ROOT="WeightSched"
-RESULT_DIR="runs/weight_results/$(date +%Y_%m_%d)_seeds"
-
-# =============================================================================
-# 以下一般不需要修改
-# =============================================================================
 cd "$(dirname "$0")/.."    # 切换到项目根目录（本脚本在 scripts/ 下）
 
-abbr() {
-    case "$1" in
-        art) echo "Ar" ;; clipart) echo "Cl" ;; product) echo "Pr" ;; realworld) echo "Re" ;;
-        *) echo "未知域名: $1" >&2; exit 1 ;;
-    esac
-}
+PYTHON="python -u"
+GPU=0
+SUMMARY_ONLY="${SUMMARY_ONLY:-0}"
+GROUP="cap02_tstrong"
+EXTRA="--epochs 40 --align_mode ot --knn_k 10 --align_view both --align_weight cap --align_cap 0.2 --t_strong"
 
-# 先展开成「源域 目标域 任务名 组名 种子 | 额外参数」，并统计还需要训练几组
-todo=()
-n_done=0
-for job in "${JOBS[@]}"; do
-    IFS='|' read -r name pair seed extra <<< "$job"
-    s="${pair%%:*}"
-    t="${pair##*:}"
-    task="$(abbr "$s")2$(abbr "$t")"
-    if [ -f "runs/$TRAIN_ROOT/$name/${task}_s${seed}/.done" ]; then
-        echo "==> ${task} ${name} seed=${seed}：已完成，跳过"
-        n_done=$((n_done + 1))
-    else
-        todo+=("$s $t $task $name $seed|$extra")
-    fi
-done
-echo "==> 已完成 ${n_done} 组，本次需要训练 ${#todo[@]} 组"
+PAIRS="art:clipart art:product art:realworld clipart:art clipart:product clipart:realworld \
+product:art product:clipart product:realworld realworld:art realworld:clipart realworld:product"
+abbr() { case "$1" in art) echo Ar ;; clipart) echo Cl ;; product) echo Pr ;; realworld) echo Re ;; esac; }
+mkdir -p runs/seeds_logs
 
-k=0
-# ${todo[@]+...}：数组为空时不展开，避免 set -u 在旧版 bash 下报错
-for item in ${todo[@]+"${todo[@]}"}; do
-    read -r s t task name seed <<< "${item%%|*}"
-    extra="${item#*|}"
-    k=$((k + 1))
-    dir="runs/$TRAIN_ROOT/$name/${task}_s${seed}"
+if [ "$SUMMARY_ONLY" != "1" ]; then
+    T0=$(date +%s)
+    for seed in 0 1; do
+        for pair in $PAIRS; do
+            s="${pair%%:*}"; t="${pair##*:}"; task="$(abbr "$s")2$(abbr "$t")"
+            dir="WeightSched/$GROUP/${task}_s${seed}"
+            if [ -f "runs/$dir/.done" ]; then echo "==> $task s$seed：已完成，跳过"; continue; fi
+            if [ -d "runs/$dir" ]; then echo "[错误] runs/$dir 已存在但没有完成标记（可能上次中断），请改名后重跑"; continue; fi
+            echo "==> 开始 $task s$seed（$(date +%H:%M)）"
+            # $EXTRA 不加引号，让它拆成多个参数；失败不写完成标记，继续下一个任务
+            if $PYTHON main.py --device "$GPU" --name "$dir" --dataset OfficeHomeDataset --source "$s" --target "$t" --seed "$seed" $EXTRA \
+                > "runs/seeds_logs/${task}_s${seed}.log" 2>&1; then
+                touch "runs/$dir/.done"; echo "==> 完成 $task s$seed"
+            else
+                echo "[错误] $task s$seed 训练失败，见 runs/seeds_logs/${task}_s${seed}.log"
+            fi
+        done
+    done
+    echo "耗时 $(( ($(date +%s) - T0) / 60 )) 分钟"
+fi
 
-    # main.py 遇到同名目录会自动加时间戳另建，导致汇总时找不到，所以提前拦下
-    if [ -d "$dir" ]; then
-        echo "[错误] ${dir} 已存在但没有完成标记（可能上次中断），请删除后重跑"; exit 1
-    fi
-
-    echo ""
-    echo "################################################################"
-    echo "==> 第 ${k}/${#todo[@]} 组：${task}（${s} -> ${t}），${name}，seed=${seed}"
-    echo "    参数：${extra}"
-    echo "################################################################"
-    # $extra 不加引号，让它拆成多个参数
-    $PYTHON main.py \
-        --device "$GPU" \
-        --name "$TRAIN_ROOT/$name/${task}_s${seed}" \
-        --epochs "$EPOCHS" \
-        --dataset "$DATASET" \
-        --source "$s" \
-        --target "$t" \
-        --seed "$seed" \
-        $extra
-    # 训练正常结束后才写完成标记
-    touch "$dir/.done"
-done
-
-echo "==> 汇总"
 echo "============================== 汇总开始（把这一段完整贴回）=============================="
-$PYTHON tools/ablation_collect.py --process "runs/$TRAIN_ROOT" --out "$RESULT_DIR" | grep -v "^已打包"
+$PYTHON - <<'PY'
+import os, re
+import numpy as np
+cosmo = {"Ar2Cl": 76.4, "Ar2Pr": 92.6, "Ar2Re": 92.0, "Cl2Ar": 85.7, "Cl2Pr": 92.4, "Cl2Re": 91.9,
+         "Pr2Ar": 84.3, "Pr2Cl": 76.1, "Pr2Re": 91.7, "Re2Ar": 85.6, "Re2Cl": 75.5, "Re2Pr": 92.7}
+def last5(t, seed):
+    d = f"runs/WeightSched/cap02_tstrong/{t}_s{seed}"
+    if not os.path.exists(f"{d}/.done") and seed != 42:
+        return None
+    v = [float(x) * 100 for x in re.findall(r"Overall Accuracy \(OA\): ([0-9.]+)", open(f"{d}/Detail.txt").read())][1:] if os.path.exists(f"{d}/Detail.txt") else []
+    return sum(v[-5:]) / len(v[-5:]) if v else None
+seeds = (42, 0, 1)
+R = {t: [last5(t, s) for s in seeds] for t in cosmo}
+f = lambda v: "-" if v is None else f"{v:.2f}"
+print("## Office-Home cap02_tstrong 多种子（40 epoch，OA 后 5 = 最后 5 次评估均值）\n")
+print("| 任务 | s42 | s0 | s1 | 均值 ± 标准差 | COSMO | 差 |")
+print("|---|---|---|---|---|---|---|")
+for t, r in R.items():
+    v = [x for x in r if x is not None]
+    m = f"{np.mean(v):.2f} ± {np.std(v, ddof=1) if len(v) > 1 else 0:.2f}" if v else "-"
+    print(f"| {t} | {' | '.join(f(x) for x in r)} | {m} | {cosmo[t]} | {np.mean(v) - cosmo[t]:+.2f} |" if v else f"| {t} | - | - | - | - | {cosmo[t]} | - |")
+print()
+avgs = []
+for i, s in enumerate(seeds):
+    v = [R[t][i] for t in cosmo]
+    if all(x is not None for x in v):
+        avgs.append(np.mean(v)); print(f"seed {s}：12 任务平均 {avgs[-1]:.2f}")
+    else:
+        done = [t for t in cosmo if R[t][i] is not None]
+        if done:
+            print(f"seed {s}：已完成 {len(done)} / 12，这些任务上 {np.mean([R[t][i] for t in done]):.2f}（seed 42 同任务 {np.mean([R[t][0] for t in done]):.2f}，COSMO {np.mean([cosmo[t] for t in done]):.2f}）")
+if len(avgs) > 1:
+    print(f"\n{len(avgs)} 个种子：{np.mean(avgs):.2f} ± {np.std(avgs, ddof=1):.3f}（COSMO 86.41 ± 0.084，3 个种子）")
+PY
 echo "============================== 汇总结束 =============================="
