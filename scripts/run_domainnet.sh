@@ -10,6 +10,7 @@
 #   !bash scripts/run_domainnet.sh            中途看汇总：!SUMMARY_ONLY=1 bash scripts/run_domainnet.sh
 #   只跑前 n 个任务：!N_TASKS=3 bash scripts/run_domainnet.sh
 #   VARIANT=self_ct：self + --consensus teacher（老师学老师 × 学生的熵加权共识；30% 子集 R2P / C2S / S2P +1.6 ~ 2.2），对照列为 self
+#   VARIANT=self_ct_sema：self_ct + --s_ema 0.5（学生 EMA，只额外评估、不改训练；OH +0.06、VisDA 91.60 → 92.33），对照列为 self_ct，另列 EMA 均值
 #   VARIANT=self：加 --clsw_mode self（进度 0.25 冻结学生平均概率作均衡目标；R→S 77.95 → 79.43），汇总里列出同任务的原方法作对照
 # =============================================================================
 
@@ -31,6 +32,7 @@ case "$VARIANT" in
     "") ;;
     self) EXTRA="$EXTRA --clsw_mode self" ;;
     self_ct) EXTRA="$EXTRA --clsw_mode self --consensus teacher"; BASE_GROUP="cap02_tstrong_self_e${EPOCHS}" ;;
+    self_ct_sema) EXTRA="$EXTRA --clsw_mode self --consensus teacher --s_ema 0.5"; BASE_GROUP="cap02_tstrong_self_ct_e${EPOCHS}" ;;
     *) echo "未知 VARIANT: $VARIANT"; exit 1 ;;
 esac
 
@@ -63,21 +65,23 @@ done
 echo "============================== 汇总开始（把这一段完整贴回）=============================="
 echo "## DomainNet-126 ${GROUP}（ResNet-50，${EPOCHS} epoch，seed 42；均值 = 不含第 0 步的最后至多 5 次评估）"
 echo ""
-echo "| 任务 | 源模型（第 0 步） | OA 均值 | OA 最后一次 | AA 最后一次 | 对照 $BASE_GROUP | COSMO | VSFOT（公开） | − COSMO | 状态 |"
-echo "|---|---|---|---|---|---|---|---|---|---|"
+echo "| 任务 | 源模型（第 0 步） | OA 均值 | OA 最后一次 | AA 最后一次 | 对照 $BASE_GROUP | COSMO | VSFOT（公开） | − COSMO | 状态 | EMA OA 均值 |"
+echo "|---|---|---|---|---|---|---|---|---|---|---|"
 for pair in "${PAIRS[@]}"; do
     IFS=: read -r s t cosmo vsfot <<< "$pair"; task="$(abbr "$s")2$(abbr "$t")"
     f="runs/$TRAIN_ROOT/$GROUP/${task}_s42/Detail.txt"
     fb="runs/$TRAIN_ROOT/$BASE_GROUP/${task}_s42/Detail.txt"
     ob=$([ -f "$fb" ] && grep -o "Overall Accuracy (OA): [0-9.]*" "$fb" | tail -n +2 | tail -5 | awk '{s+=$NF} END {if (NR) printf "%.2f", s/NR*100}' || echo -)
-    [ -f "$f" ] || { echo "| $task | - | - | - | - | $ob | $cosmo | $vsfot | - | 未开始 |"; continue; }
+    [ -f "$f" ] || { echo "| $task | - | - | - | - | $ob | $cosmo | $vsfot | - | 未开始 | - |"; continue; }
     oa0=$(grep -o "Overall Accuracy (OA): [0-9.]*" "$f" | head -1 | awk '{printf "%.2f", $NF*100}')
     oa=$(grep -o "Overall Accuracy (OA): [0-9.]*" "$f" | tail -n +2 | tail -5 | awk '{s+=$NF} END {if (NR) printf "%.2f", s/NR*100}')
     oal=$(grep -o "Overall Accuracy (OA): [0-9.]*" "$f" | tail -n +2 | tail -1 | awk '{printf "%.2f", $NF*100}')
     aal=$(grep -o "Average Accuracy (AA): [0-9.]*" "$f" | tail -n +2 | tail -1 | awk '{printf "%.2f", $NF*100}')
     st=$([ -f "${f%/*}/.done" ] && echo 完成 || echo 进行中)
     dc=$(awk -v a="$oa" -v b="$cosmo" 'BEGIN {if (a != "") printf "%+.2f", a - b; else printf "-"}')
-    echo "| $task | $oa0 | $oa | $oal | $aal | $ob | $cosmo | $vsfot | $dc | $st |"
+    # --s_ema 时 run_log.txt 里每次评估有一行 [ema]（没有则为 -）
+    ema=$(grep -ao "\[ema\] iter [0-9]*  OA [0-9.]*" "${f%/*}/run_log.txt" 2>/dev/null | tail -5 | awk '{s+=$NF} END {if (NR) printf "%.2f", s/NR*100; else printf "-"}')
+    echo "| $task | $oa0 | $oa | $oal | $aal | $ob | $cosmo | $vsfot | $dc | $st | $ema |"
 done
 echo ""
 echo "参考：COSMO DomainNet-126 12 任务平均 85.1，VSFOT 公开数字 82.6（论文表格）"
