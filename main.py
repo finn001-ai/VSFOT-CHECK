@@ -906,6 +906,7 @@ if __name__ == "__main__":
     parser.add_argument("--topk", default=3, type=int)
 
     parser.add_argument("--snapshot_at", default=[], type=float, nargs="*", help="保存快照的训练进度，如 0 0.25 0.5")
+    parser.add_argument("--src_suffix", default="", type=str, help="源模型目录后缀，如 _s0 → runs/Source_home_s0/；默认空 = seed 42 的源模型")
     parser.add_argument("--save_final", default=1, type=int, help="1 = 训练结束时保存 final.pt（学生 + EMA 学生 + adapter + 记忆库）")
     parser.add_argument("--stop_at", default=1.0, type=float, help="训练到该进度后停止，如 0.5")
     parser.add_argument("--align_mode", default="ot", type=str, choices=["ot", "clip_soft", "clip_hard", "clip_sharp"],
@@ -1043,6 +1044,7 @@ if __name__ == "__main__":
         args.class_info = ['aircraft_carrier', 'alarm_clock', 'ant', 'anvil', 'asparagus', 'axe', 'banana', 'basket', 'bathtub', 'bear', 'bee', 'bird', 'blackberry', 'blueberry', 'bottlecap', 'broccoli', 'bus', 'butterfly', 'cactus', 'cake', 'calculator', 'camel', 'camera', 'candle', 'cannon', 'canoe', 'carrot', 'castle', 'cat', 'ceiling_fan', 'cello', 'cell_phone', 'chair', 'chandelier', 'coffee_cup', 'compass', 'computer', 'cow', 'crab', 'crocodile', 'cruise_ship', 'dog', 'dolphin', 'dragon', 'drums', 'duck', 'dumbbell', 'elephant', 'eyeglasses', 'feather', 'fence', 'fish', 'flamingo', 'flower', 'foot', 'fork', 'frog', 'giraffe', 'goatee', 'grapes', 'guitar', 'hammer', 'helicopter', 'helmet', 'horse', 'kangaroo', 'lantern', 'laptop', 'leaf', 'lion', 'lipstick', 'lobster', 'microphone', 'monkey', 'mosquito', 'mouse', 'mug', 'mushroom', 'onion', 'panda', 'peanut', 'pear', 'peas', 'pencil', 'penguin', 'pig', 'pillow', 'pineapple', 'potato', 'power_outlet', 'purse', 'rabbit', 'raccoon', 'rhinoceros', 'rifle', 'saxophone', 'screwdriver', 'sea_turtle', 'see_saw', 'sheep', 'shoe', 'skateboard', 'snake', 'speedboat', 'spider', 'squirrel', 'strawberry', 'streetlight', 'string_bean', 'submarine', 'swan', 'table', 'teapot', 'teddy-bear', 'television', 'The_Eiffel_Tower', 'The_Great_Wall_of_China', 'tiger', 'toe', 'train', 'truck', 'umbrella', 'vase', 'watermelon', 'whale', 'zebra']
         args.sourceStorage = "Source_domainnet"
 
+    args.sourceStorage += args.src_suffix
     assert args.source in args.domains, f"error dataset or domai: {args.source} not in {args.dataset}"
     args.image_root = os.path.join(IMAGEFILE, args.dataset)
     args.device = f"cuda:{args.device}"

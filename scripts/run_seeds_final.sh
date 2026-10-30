@@ -7,6 +7,7 @@
 #     VisDA  VisDA/norm65_self_ct_e15_b32_sema     ResNet-101，15 epoch，batch 32，clsw self，norm 65，老师侧共识，s_ema 0.5
 #     DN     DomainNet/cap02_tstrong_self_ct_sema_e10   ResNet-50，10 epoch，clsw self，老师侧共识，s_ema 0.5
 #   每个任务结束保存 final.pt（main.py 默认 --save_final 1）
+#   源模型：种子 s 用同一种子从头训练，放 runs/Source_*_s<s>/（seed 42 用原有 runs/Source_*）；缺哪个训哪个，OH 4 个约 20 分钟，VisDA 约 10 分钟，DN 4 个约 30 分钟
 #
 #   !SEED=0 SETS="oh" bash scripts/run_seeds_final.sh          SETS 可选 oh / visda / dn，空格分隔，按给出的顺序跑
 #   !SUMMARY_ONLY=1 bash scripts/run_seeds_final.sh            只看汇总（本机上已有的所有种子）
@@ -46,12 +47,39 @@ jobs_for() {
     esac
 }
 
+# 源模型：每个种子用同一个种子从头训练（seed 42 用原有的 runs/Source_*，即同一规则）；参数与 seed 42 的源模型相同（见各 argsInfo.txt）
+# 格式 "目录（相对 runs/，不含后缀）|域目录名|trainSource 参数"
+src_jobs_for() {
+    case "$1" in
+        oh) for d in art clipart product realworld; do
+                n=$([ "$d" = realworld ] && echo "real world" || echo "$d")
+                echo "Source_home|Source_$n|--dataset OfficeHomeDataset --source $d"; done ;;
+        visda) echo "Source_visda|Source_synthesis|--dataset VisDA --source synthesis --arch resnet101 --epochs 2 --lr 0.001" ;;
+        dn) for d in real painting clipart sketch; do echo "Source_domainnet|Source_$d|--dataset DomainNet --source $d --epochs 5"; done ;;
+    esac
+}
+train_sources() {
+    while IFS= read -r item; do
+        IFS="|" read -r store sub extra <<< "$item"
+        d="runs/${store}${SRC_SUFFIX}/$sub"
+        if [ -f "$d/Source.pt" ]; then echo "==> 源模型 $d：已有，跳过"; continue; fi
+        if [ -d "$d" ]; then echo "[错误] $d 已存在但没有 Source.pt（可能上次中断），请改名后重跑"; exit 1; fi
+        echo "==> 训练源模型 $d（$(date +%H:%M)）"
+        $PYTHON trainSource.py --name "${store}${SRC_SUFFIX}/$sub" --seed "$SEED" $extra \
+            > "runs/seeds_final_logs/$(echo "${store}${SRC_SUFFIX}_$sub" | tr '/ ' '__').log" 2>&1 \
+            || { echo "[错误] 源模型 $d 训练失败"; exit 1; }
+        [ -f "$d/Source.pt" ] || { echo "[错误] $d 没有生成 Source.pt"; exit 1; }
+    done < <(src_jobs_for "$1")
+}
+
 if [ "$SUMMARY_ONLY" != "1" ]; then
     [ -n "$SEED" ] || { echo "[错误] 需要 SEED=<种子>"; exit 1; }
+    SRC_SUFFIX=$([ "$SEED" = 42 ] && echo "" || echo "_s$SEED")
     mkdir -p runs/seeds_final_logs
-    echo "机器 $(hostname)，GPU $(nvidia-smi --query-gpu=name --format=csv,noheader | head -1)，commit $(git log -1 --format=%h)，SEED=$SEED，SETS=$SETS"
+    echo "机器 $(hostname)，GPU $(nvidia-smi --query-gpu=name --format=csv,noheader | head -1)，commit $(git log -1 --format=%h)，SEED=$SEED，SETS=$SETS，源模型 runs/Source_*$SRC_SUFFIX"
     T0=$(date +%s)
     for set in $SETS; do
+        [ "$SEED" = 42 ] || train_sources "$set"
         while IFS= read -r item; do
             IFS="|" read -r base ds s t extra <<< "$item"
             dir="${base}_s${SEED}"
@@ -59,7 +87,7 @@ if [ "$SUMMARY_ONLY" != "1" ]; then
             if [ -d "runs/$dir" ]; then echo "[错误] runs/$dir 已存在但没有完成标记（可能上次中断），请改名后重跑"; continue; fi
             echo "==> 开始 $dir（$(date +%H:%M)）"
             # $extra 不加引号，让它拆成多个参数；失败不写完成标记，继续下一个
-            if $PYTHON main.py --device "$GPU" --name "$dir" --dataset "$ds" --source "$s" --target "$t" --seed "$SEED" $extra \
+            if $PYTHON main.py --device "$GPU" --name "$dir" --dataset "$ds" --source "$s" --target "$t" --seed "$SEED" --src_suffix "$SRC_SUFFIX" $extra \
                 > "runs/seeds_final_logs/$(echo "$dir" | tr / _).log" 2>&1; then
                 touch "runs/$dir/.done"; echo "==> 完成 $dir"
             else
