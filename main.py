@@ -857,6 +857,23 @@ def start(args, target_dataloader, CLIP_model_raw):
         bar.update(1)
     bar.close()
 
+    # 训练结束时的完整模型（汇报数字对应的那一份；--s_ema > 0 时另存 EMA 学生），只写文件不影响训练
+    if args.save_final:
+        torch.save({
+            "iter": iter_num, "max_iter": max_iter,
+            "args": vars(args),
+            "imgs": target_dataloader["test"].dataset.imgs,
+            "feature": feature_net.state_dict(),
+            "classifier": classifier_net.state_dict(),
+            "ema_feature": ema_nets[0].state_dict() if ema_nets is not None else None,
+            "ema_classifier": ema_nets[1].state_dict() if ema_nets is not None else None,
+            "adapter": {k: v for k, v in CLIP_model.state_dict().items() if "adapter" in k},
+            "prompt_ctx": prompt_learner.ctx.detach().cpu() if prompt_learner is not None else None,
+            "vil_bank": MB.vil_bank.cpu(),
+            "model_bank": MB.model_bank.cpu(),
+        }, os.path.join(Project.root_path, "final.pt"))
+        Project.log(f"Final checkpoint saved (iter {iter_num})", is_print=False)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='PyTorch Training')
@@ -889,6 +906,7 @@ if __name__ == "__main__":
     parser.add_argument("--topk", default=3, type=int)
 
     parser.add_argument("--snapshot_at", default=[], type=float, nargs="*", help="保存快照的训练进度，如 0 0.25 0.5")
+    parser.add_argument("--save_final", default=1, type=int, help="1 = 训练结束时保存 final.pt（学生 + EMA 学生 + adapter + 记忆库）")
     parser.add_argument("--stop_at", default=1.0, type=float, help="训练到该进度后停止，如 0.5")
     parser.add_argument("--align_mode", default="ot", type=str, choices=["ot", "clip_soft", "clip_hard", "clip_sharp"],
                         help="对齐损失用的计划：ot = 原方法；clip_soft / clip_hard = 消融，直接用 CLIP 软 / 硬标签；"
