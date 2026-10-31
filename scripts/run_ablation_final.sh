@@ -12,8 +12,8 @@
 #     最后 mod_unified（OH 也开 C 和老师侧共识 = 三个数据集同一套组件，只作补充行，不替换主表）
 #   VisDA（ABL_SET=visda，gpuB 整条链，源模型在本机用 seed 42 训练，放 runs/Source_visda_b42）
 #     VisDA/mod_b42_{full,minusA,minusB,minusC,vsfot}，先跑 full（核对与 gpuA 主表 92.33 的差距）
-#   DN（ABL_SET=dn，gpuB 接在 VisDA 后，每行约 10 小时）：完整 = 已有 cap02_tstrong_self_ct_sema_e10；
-#     新跑 DomainNet/mod_{minusA,minusB,minusC,vsfot}_e10
+#   DN（ABL_SET=dn，gpuB 接在 VisDA 后，每行约 10 小时）：同 VisDA，整条链在 gpuB，源模型本机 seed 42 训练，放 runs/Source_domainnet_b42
+#     DomainNet/mod_b42_{full,minusA,minusB,minusC,vsfot}_e10（gpuA 主表的完整行在另一台机器，不能逐位比）
 #   模块内部逐个组件的拆解放附录，用已有组（OH both_ramp / both_cap02 / cap02_tstrong，DN self_e10 / self_ct_e10）
 #
 #   !ABL_SET=oh bash scripts/run_ablation_final.sh        !ABL_SET="visda dn" bash scripts/run_ablation_final.sh
@@ -49,10 +49,10 @@ jobs_for() {
                     echo "WeightSched/${g%%|*}/${a}2${b}_s42|OfficeHomeDataset|$s|$t||${g#*|}"; done; done ;;
         visda) for g in "full|$A $VD_B $VD_C" "minusA|$VD_B $VD_C" "minusB|$A $VD_C" "minusC|$A $VD_B" "vsfot|"; do
                    echo "VisDA/mod_b42_${g%%|*}/S2R_s42|VisDA|synthesis|real|_b42|$VD0 ${g#*|}"; done ;;
-        dn) for g in "minusA|$DN_B $DN_C" "minusB|$A $DN_C" "minusC|$A $DN_B" "vsfot|"; do
+        dn) for g in "full|$A $DN_B $DN_C" "minusA|$DN_B $DN_C" "minusB|$A $DN_C" "minusC|$A $DN_B" "vsfot|"; do
                 for p in $DN_T; do IFS=: read -r s t <<< "$p"
                     a=$(echo "$s" | cut -c1 | tr a-z A-Z); b=$(echo "$t" | cut -c1 | tr a-z A-Z)
-                    echo "DomainNet/mod_${g%%|*}_e10/${a}2${b}_s42|DomainNet|$s|$t||$DN0 ${g#*|}"; done; done ;;
+                    echo "DomainNet/mod_b42_${g%%|*}_e10/${a}2${b}_s42|DomainNet|$s|$t|_b42|$DN0 ${g#*|}"; done; done ;;
         *) echo "未知 ABL_SET: $1" >&2; exit 1 ;;
     esac
 }
@@ -68,6 +68,16 @@ if [ "$SUMMARY_ONLY" != "1" ]; then
             echo "==> 训练源模型 runs/Source_visda_b42/Source_synthesis（seed 42，参数同 gpuA 的 Source_visda）（$(date +%H:%M)）"
             $PYTHON trainSource.py --name Source_visda_b42/Source_synthesis --seed 42 --dataset VisDA --source synthesis --arch resnet101 --epochs 2 --lr 0.001 \
                 > runs/ablation_final_logs/Source_visda_b42.log 2>&1 || { echo "[错误] 源模型训练失败"; exit 1; }
+        fi
+        if [ "$set" = dn ]; then
+            for d in real painting clipart sketch; do
+                sd="runs/Source_domainnet_b42/Source_$d"
+                [ -f "$sd/Source.pt" ] && continue
+                [ -d "$sd" ] && { echo "[错误] $sd 已存在但没有 Source.pt"; exit 1; }
+                echo "==> 训练源模型 $sd（seed 42，参数同 gpuA 的 Source_domainnet）（$(date +%H:%M)）"
+                $PYTHON trainSource.py --name "Source_domainnet_b42/Source_$d" --seed 42 --dataset DomainNet --source "$d" --epochs 5 \
+                    > "runs/ablation_final_logs/Source_domainnet_b42_$d.log" 2>&1 || { echo "[错误] 源模型 $sd 训练失败"; exit 1; }
+            done
         fi
         while IFS= read -r item; do
             IFS="|" read -r dir ds s t suf extra <<< "$item"
@@ -131,10 +141,10 @@ for name, g in [("完整", "full"), ("− A 对齐目标", "minusA"), ("− B �
     print(f"| {name} | {f(m5(ema(d, 1)))}（{f(m5(detail(d, AA)))}） | {f(m5(ema(d, 0)))}（{f(m5(detail(d, OA)))}） |")
 print()
 
-multi("DomainNet-126 模块消融", "DomainNet",
+multi("DomainNet-126 模块消融（gpuB 整条链，源模型 Source_domainnet_b42）", "DomainNet",
       ["R2S", "R2C", "P2S", "C2S", "S2C", "P2C", "R2P", "C2P", "S2P", "P2R", "C2R", "S2R"],
-      [("完整（主表）", "cap02_tstrong_self_ct_sema_e10"), ("− A 对齐目标", "mod_minusA_e10"), ("− B 老师学习", "mod_minusB_e10"),
-       ("− C 类别分布", "mod_minusC_e10"), ("VSFOT（全去掉）", "mod_vsfot_e10")],
+      [("完整", "mod_b42_full_e10"), ("− A 对齐目标", "mod_b42_minusA_e10"), ("− B 老师学习", "mod_b42_minusB_e10"),
+       ("− C 类别分布", "mod_b42_minusC_e10"), ("VSFOT（全去掉）", "mod_b42_vsfot_e10")],
       ["→S", "→C", "→P", "→R"])
 PY
 echo "============================== 汇总结束 =============================="
