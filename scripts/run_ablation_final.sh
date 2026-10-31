@@ -7,16 +7,15 @@
 #     C 目标域类别分布     --clsw_mode self（VisDA 另加 --align_norm_c 65）；OH 主配置不含 C
 #     学生 EMA            --s_ema 0.5，只评估、不改训练，每行都开，不算模块
 #   每行：完整 / −A / −B / −C / VSFOT（三个模块全去掉）
-#   OH（ABL_SET=oh，gpuA：主配置结果都在 gpuA，torch 2.8，同机才可逐行比较）
-#     完整 = 已有 WeightSched/cap02_tstrong_sema；新跑 mod_minusA、mod_minusB、mod_vsfot，
-#     最后 mod_unified（OH 也开 C 和老师侧共识 = 三个数据集同一套组件，只作补充行，不替换主表）
-#   VisDA（ABL_SET=visda，gpuB 整条链，源模型在本机用 seed 42 训练，放 runs/Source_visda_b42）
-#     VisDA/mod_b42_{full,minusA,minusB,minusC,vsfot}，先跑 full（核对与 gpuA 主表 92.33 的差距）
-#   DN（ABL_SET=dn，gpuB 接在 VisDA 后，每行约 10 小时）：同 VisDA，整条链在 gpuB，源模型本机 seed 42 训练，放 runs/Source_domainnet_b42
-#     DomainNet/mod_b42_{full,minusA,minusB,minusC,vsfot}_e10（gpuA 主表的完整行在另一台机器，不能逐位比）
+#   2026-10-31 gpuB 被抢占，全部在 gpuA 跑（torch 2.8）：源模型和「完整」行都用 gpuA 已有的（seed 42），同机可逐行比较
+#   OH（ABL_SET=oh）：完整 = WeightSched/cap02_tstrong_sema；新跑 mod_minusA、mod_minusB、mod_vsfot（每行约 10.5 小时）
+#     ABL_SET=oh_extra：mod_unified（OH 也开 C 和老师侧共识 = 三个数据集同一套组件，只作补充行，不替换主表）
+#   VisDA（ABL_SET=visda）：完整 = VisDA/norm65_self_ct_e15_b32_sema；新跑 VisDA/mod_{minusA,minusB,minusC,vsfot}（每行约 2.1 小时）
+#   DN（ABL_SET=dn）：完整 = DomainNet/cap02_tstrong_self_ct_sema_e10；新跑 DomainNet/mod_{minusC,minusB,minusA,vsfot}_e10（每行约 10 小时）
+#   排队顺序（便宜、信息量大的先跑）：ABL_SET="visda oh dn oh_extra"
 #   模块内部逐个组件的拆解放附录，用已有组（OH both_ramp / both_cap02 / cap02_tstrong，DN self_e10 / self_ct_e10）
 #
-#   !ABL_SET=oh bash scripts/run_ablation_final.sh        !ABL_SET="visda dn" bash scripts/run_ablation_final.sh
+#   !ABL_SET="visda oh dn oh_extra" bash scripts/run_ablation_final.sh
 #   !SUMMARY_ONLY=1 bash scripts/run_ablation_final.sh    只看汇总（本机有的行）
 # =============================================================================
 
@@ -43,42 +42,28 @@ real:painting clipart:painting sketch:painting painting:real clipart:real sketch
 # 格式 "目录|数据集|源域|目标域|源模型后缀|参数"
 jobs_for() {
     case "$1" in
-        oh) for g in "mod_minusA|$OH0 --t_strong" "mod_minusB|$OH0 $A" "mod_vsfot|$OH0" \
-                     "mod_unified|$OH0 $A --t_strong --consensus teacher --clsw_mode self --align_norm_c 65"; do
+        oh|oh_extra)
+            if [ "$1" = oh ]; then gs=("mod_minusA|$OH0 --t_strong" "mod_minusB|$OH0 $A" "mod_vsfot|$OH0")
+            else gs=("mod_unified|$OH0 $A --t_strong --consensus teacher --clsw_mode self --align_norm_c 65"); fi
+            for g in "${gs[@]}"; do
                 for p in $OH_T; do IFS=: read -r a s b t <<< "$p"
                     echo "WeightSched/${g%%|*}/${a}2${b}_s42|OfficeHomeDataset|$s|$t||${g#*|}"; done; done ;;
-        visda) for g in "full|$A $VD_B $VD_C" "minusA|$VD_B $VD_C" "minusB|$A $VD_C" "minusC|$A $VD_B" "vsfot|"; do
-                   echo "VisDA/mod_b42_${g%%|*}/S2R_s42|VisDA|synthesis|real|_b42|$VD0 ${g#*|}"; done ;;
-        dn) for g in "full|$A $DN_B $DN_C" "minusA|$DN_B $DN_C" "minusB|$A $DN_C" "minusC|$A $DN_B" "vsfot|"; do
+        visda) for g in "minusA|$VD_B $VD_C" "minusB|$A $VD_C" "minusC|$A $VD_B" "vsfot|"; do
+                   echo "VisDA/mod_${g%%|*}/S2R_s42|VisDA|synthesis|real||$VD0 ${g#*|}"; done ;;
+        dn) for g in "minusC|$A $DN_B" "minusB|$A $DN_C" "minusA|$DN_B $DN_C" "vsfot|"; do
                 for p in $DN_T; do IFS=: read -r s t <<< "$p"
                     a=$(echo "$s" | cut -c1 | tr a-z A-Z); b=$(echo "$t" | cut -c1 | tr a-z A-Z)
-                    echo "DomainNet/mod_b42_${g%%|*}_e10/${a}2${b}_s42|DomainNet|$s|$t|_b42|$DN0 ${g#*|}"; done; done ;;
+                    echo "DomainNet/mod_${g%%|*}_e10/${a}2${b}_s42|DomainNet|$s|$t||$DN0 ${g#*|}"; done; done ;;
         *) echo "未知 ABL_SET: $1" >&2; exit 1 ;;
     esac
 }
 
 if [ "$SUMMARY_ONLY" != "1" ]; then
-    [ -n "$ABL_SET" ] || { echo "[错误] 需要 ABL_SET=oh / visda / dn（可空格分隔多个）"; exit 1; }
+    [ -n "$ABL_SET" ] || { echo "[错误] 需要 ABL_SET=visda / oh / dn / oh_extra（可空格分隔多个）"; exit 1; }
     mkdir -p runs/ablation_final_logs
     echo "机器 $(hostname)，GPU $(nvidia-smi --query-gpu=name --format=csv,noheader | head -1)，torch $($PYTHON -c 'import torch; print(torch.__version__)')，commit $(git log -1 --format=%h)，ABL_SET=$ABL_SET"
     T0=$(date +%s)
     for set in $ABL_SET; do
-        if [ "$set" = visda ] && [ ! -f runs/Source_visda_b42/Source_synthesis/Source.pt ]; then
-            [ -d runs/Source_visda_b42/Source_synthesis ] && { echo "[错误] runs/Source_visda_b42/Source_synthesis 已存在但没有 Source.pt"; exit 1; }
-            echo "==> 训练源模型 runs/Source_visda_b42/Source_synthesis（seed 42，参数同 gpuA 的 Source_visda）（$(date +%H:%M)）"
-            $PYTHON trainSource.py --name Source_visda_b42/Source_synthesis --seed 42 --dataset VisDA --source synthesis --arch resnet101 --epochs 2 --lr 0.001 \
-                > runs/ablation_final_logs/Source_visda_b42.log 2>&1 || { echo "[错误] 源模型训练失败"; exit 1; }
-        fi
-        if [ "$set" = dn ]; then
-            for d in real painting clipart sketch; do
-                sd="runs/Source_domainnet_b42/Source_$d"
-                [ -f "$sd/Source.pt" ] && continue
-                [ -d "$sd" ] && { echo "[错误] $sd 已存在但没有 Source.pt"; exit 1; }
-                echo "==> 训练源模型 $sd（seed 42，参数同 gpuA 的 Source_domainnet）（$(date +%H:%M)）"
-                $PYTHON trainSource.py --name "Source_domainnet_b42/Source_$d" --seed 42 --dataset DomainNet --source "$d" --epochs 5 \
-                    > "runs/ablation_final_logs/Source_domainnet_b42_$d.log" 2>&1 || { echo "[错误] 源模型 $sd 训练失败"; exit 1; }
-            done
-        fi
         while IFS= read -r item; do
             IFS="|" read -r dir ds s t suf extra <<< "$item"
             if [ -f "runs/$dir/.done" ]; then echo "==> $dir：已完成，跳过"; continue; fi
@@ -133,18 +118,18 @@ multi("Office-Home 模块消融", "WeightSched",
        ("VSFOT（全去掉）", "mod_vsfot"), ("补充：+ C + 老师侧共识（三数据集同一套组件）", "mod_unified")],
       ["→Cl", "→Ar", "→Pr", "→Re"])
 
-print("## VisDA-C 模块消融（seed 42，gpuB 整条链，源模型 Source_visda_b42；后 5 次均值）\n")
+print("## VisDA-C 模块消融（seed 42，gpuA；后 5 次均值）\n")
 print("| 行 | EMA AA（原学生） | EMA OA（原学生） |")
 print("|---|---|---|")
-for name, g in [("完整", "full"), ("− A 对齐目标", "minusA"), ("− B 老师学习", "minusB"), ("− C 类别分布", "minusC"), ("VSFOT（全去掉）", "vsfot")]:
-    d = f"VisDA/mod_b42_{g}/S2R_s42"
+for name, g in [("完整（主表）", "norm65_self_ct_e15_b32_sema"), ("− A 对齐目标", "mod_minusA"), ("− B 老师学习", "mod_minusB"), ("− C 类别分布", "mod_minusC"), ("VSFOT（全去掉）", "mod_vsfot")]:
+    d = f"VisDA/{g}/S2R_s42"
     print(f"| {name} | {f(m5(ema(d, 1)))}（{f(m5(detail(d, AA)))}） | {f(m5(ema(d, 0)))}（{f(m5(detail(d, OA)))}） |")
 print()
 
-multi("DomainNet-126 模块消融（gpuB 整条链，源模型 Source_domainnet_b42）", "DomainNet",
+multi("DomainNet-126 模块消融", "DomainNet",
       ["R2S", "R2C", "P2S", "C2S", "S2C", "P2C", "R2P", "C2P", "S2P", "P2R", "C2R", "S2R"],
-      [("完整", "mod_b42_full_e10"), ("− A 对齐目标", "mod_b42_minusA_e10"), ("− B 老师学习", "mod_b42_minusB_e10"),
-       ("− C 类别分布", "mod_b42_minusC_e10"), ("VSFOT（全去掉）", "mod_b42_vsfot_e10")],
+      [("完整（主表）", "cap02_tstrong_self_ct_sema_e10"), ("− A 对齐目标", "mod_minusA_e10"), ("− B 老师学习", "mod_minusB_e10"),
+       ("− C 类别分布", "mod_minusC_e10"), ("VSFOT（全去掉）", "mod_vsfot_e10")],
       ["→S", "→C", "→P", "→R"])
 PY
 echo "============================== 汇总结束 =============================="
