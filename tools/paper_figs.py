@@ -171,7 +171,9 @@ def tsne(plt, prefix, rows, names, title, n_per_class, highlight, lines):
     rng = np.random.RandomState(0)
     idx = np.concatenate([rng.permutation(np.where(y == c)[0])[:n_per_class] for c in range(len(names))])
     hl = [c for c in highlight]
-    pal = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#6250d6", "#e34948"]
+    # 散点里任意两类都可能相邻，按全部配对校验：参考调色板里只有 5 色的子集能过（色盲 ΔE 6～8），所以另加点形状作第二编码
+    pal = ["#2a78d6", "#1baf7a", "#eda100", "#008300", "#e34948"]
+    mk = ["o", "s", "^", "D", "v"]
     fig, axes = plt.subplots(1, len(data), figsize=(2.6 * len(data), 2.7))
     lines.append(f"\n### t-SNE {title}（每类最多 {n_per_class} 张，共 {len(idx)} 张；kNN 与轮廓系数在全部样本 / 同一子集上算）\n")
     lines.append("| 模型 | 学生 OA | 特征 kNN 准确率（全部样本） | 轮廓系数（子集，余弦） |\n|---|---|---|---|")
@@ -183,7 +185,7 @@ def tsne(plt, prefix, rows, names, title, n_per_class, highlight, lines):
         ax.scatter(emb[other, 0], emb[other, 1], s=1.5, c=MUTED, linewidths=0, rasterized=True)
         for j, c in enumerate(hl):
             m = yy == c
-            ax.scatter(emb[m, 0], emb[m, 1], s=3, c=pal[j], linewidths=0, rasterized=True, label=names[c])
+            ax.scatter(emb[m, 0], emb[m, 1], s=5, c=pal[j], marker=mk[j], linewidths=0, rasterized=True, label=names[c])
         ax.set_title(LABEL[r], color=INK); ax.set_xticks([]); ax.set_yticks([]); ax.grid(False)
         for s in ax.spines.values():
             s.set_visible(False)
@@ -218,18 +220,23 @@ def dynamics(plt, task, rows, title, lines):
     if not data:
         print(f"训练动态 {task}：没有数据，跳过"); return
     panels = [("student_acc", "Student accuracy (%)", 100), ("pl_align_acc", "Alignment-target accuracy (%)", 100),
-              ("shared_err", "Same wrong label, student & teacher (%)", 1)]
+              ("shared_err", "Shared wrong label (%)", 1)]
     fig, axes = plt.subplots(1, 3, figsize=(7.2, 2.3))
     for ax, (k, lab, sc) in zip(axes, panels):
         for r, d in data:
             v = d[k] * sc
             m = np.isfinite(v)
             ax.plot(d["prog"][m], v[m], color=SERIES[r], label=LABEL[r])
-            ax.annotate(f"{v[m][-1]:.1f}", (d["prog"][m][-1], v[m][-1]), xytext=(3, 0), textcoords="offset points", fontsize=6.5, color=INK2, va="center")
+        # 终点数字：按终点值排序后在纵向上至少隔开 7% 的轴范围，避免重叠
+        ends = sorted(((d[k][np.isfinite(d[k])][-1] * sc, r) for r, d in data), reverse=True)
+        lo, hi = ax.get_ylim(); gap = (hi - lo) * 0.07; ys = []
+        for val, r in ends:
+            ys.append(min(val, ys[-1] - gap) if ys else val)
+            ax.annotate(f"{val:.1f}", (1.0, val), xytext=(1.02, ys[-1]), textcoords="data", fontsize=6.5, color=INK2, va="center")
         ax.set_title(lab, color=INK); ax.set_xlabel("Training progress")
         ax.set_xlim(0, 1.12)
     axes[0].legend(fontsize=7, labelcolor=INK2, handlelength=1.5)
-    fig.suptitle(title, color=INK, fontsize=9, y=1.03)
+    fig.suptitle(title, color=INK, fontsize=9)
     fig.tight_layout()
     fig.savefig(os.path.join(OUT, f"fig_dyn_{task}.pdf")); fig.savefig(os.path.join(OUT, f"fig_dyn_{task}.png"))
     plt.close(fig)
@@ -304,22 +311,22 @@ def plot():
     os.makedirs(OUT, exist_ok=True)
     lines = ["# 论文诊断图对应的数字（seed 42；学生均为 EMA 学生，标签只用于评估）"]
     oh_names, vd_names = class_info("OfficeHomeDataset"), class_info("VisDA")
-    # t-SNE 只给 8 个类上色（参考调色板的类别上限）：源模型在目标域上准确率最低的 8 个类（事先定的规则，不看适配后的结果），其余灰色
+    # t-SNE 只给 5 个类上色（散点全部配对校验能过的颜色数）：源模型在目标域上准确率最低的 5 个类（事先定的规则，不看适配后的结果），其余灰色
     src = load("oh_source")
     if src is not None:
         pred, y = src["s_prob"].argmax(1), src["label"]
-        hard = np.argsort([np.mean(pred[y == c] == c) for c in range(65)])[:8]
+        hard = np.argsort([np.mean(pred[y == c] == c) for c in range(65)])[:5]
         tsne(plt, "oh", ["source", "vsfot", "full"], oh_names, "Office-Home Ar→Cl", 1000, list(hard), lines)
     vs = load("vd_source")
     if vs is not None:
         pred, y = vs["s_prob"].argmax(1), vs["label"]
-        hard = np.argsort([np.mean(pred[y == c] == c) for c in range(12)])[:8]
+        hard = np.argsort([np.mean(pred[y == c] == c) for c in range(12)])[:5]
         tsne(plt, "vd", ["source", "vsfot", "full"], vd_names, "VisDA-C S→R", 300, list(hard), lines)
     dn = load("dn_source")
     if dn is not None:
         dn_names = class_info("DomainNet")
         pred, y = dn["s_prob"].argmax(1), dn["label"]
-        hard = np.argsort([np.mean(pred[y == c] == c) for c in range(126)])[:8]
+        hard = np.argsort([np.mean(pred[y == c] == c) for c in range(126)])[:5]
         tsne(plt, "dn", ["source", "full"], dn_names, "DomainNet-126 S→P", 1000, list(hard), lines)
     dynamics(plt, "oh", ["full", "minusA", "minusB", "vsfot"], "Office-Home Ar→Cl", lines)
     dynamics(plt, "vd", ["full", "minusA", "minusB", "minusC", "vsfot"], "VisDA-C S→R", lines)
