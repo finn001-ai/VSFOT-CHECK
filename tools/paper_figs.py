@@ -272,11 +272,11 @@ def visda_class(plt, names, lines):
     lines.append("| 真实类比例（%） | " + " | ".join(f"{t:.1f}" for t in true) + " | | |")
     axes[0].set_ylim(40, 100); axes[0].set_ylabel("Per-class accuracy (%)")
     axes[0].set_xticks(x); axes[0].set_xticklabels(names, rotation=45, ha="right")
-    axes[0].legend(fontsize=7, labelcolor=INK2, ncol=len(rows), loc="lower left")
+    axes[0].legend(fontsize=7, labelcolor=INK2, ncol=len(rows), loc="lower center", bbox_to_anchor=(0.5, 1.08), frameon=False)
     axes[1].bar(x, true, width=0.7, color=GRID, label="Ground truth")
     axes[1].set_xticks(x); axes[1].set_xticklabels(names, rotation=45, ha="right"); axes[1].set_ylabel("Share of predictions (%)")
     axes[1].legend(fontsize=7, labelcolor=INK2)
-    axes[0].set_title("VisDA-C per-class accuracy", color=INK); axes[1].set_title("Predicted vs. true class distribution", color=INK)
+    axes[0].set_title("VisDA-C per-class accuracy", color=INK, pad=18); axes[1].set_title("Predicted vs. true class distribution", color=INK)
     fig.tight_layout()
     fig.savefig(os.path.join(OUT, "fig_visda_class.pdf")); fig.savefig(os.path.join(OUT, "fig_visda_class.png"))
     plt.close(fig)
@@ -300,7 +300,11 @@ def visda_cm(plt, names):
                     ax.text(j, i, f"{cm[i, j]:.0f}", ha="center", va="center", fontsize=5.5, color="white" if cm[i, j] > 60 else INK)
         ax.set_xticks(range(C)); ax.set_yticks(range(C))
         ax.set_xticklabels(names, rotation=60, ha="right", fontsize=6.5); ax.set_yticklabels(names, fontsize=6.5)
-        ax.set_xlabel("Predicted"); ax.set_ylabel("True"); ax.grid(False)
+        ax.set_xlabel("Predicted"); ax.grid(False)
+        if ax is axes[0]:
+            ax.set_ylabel("True")
+        else:
+            ax.set_yticklabels([])    # 与左图共用类名
         ax.set_title(LABEL[r], color=INK)
     fig.colorbar(im, ax=axes, shrink=0.8, label="Row-normalized (%)")
     fig.savefig(os.path.join(OUT, "fig_visda_cm.pdf")); fig.savefig(os.path.join(OUT, "fig_visda_cm.png"))
