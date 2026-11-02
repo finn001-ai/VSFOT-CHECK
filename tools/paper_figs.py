@@ -52,6 +52,8 @@ def class_info(ds):
     from utils.Other import load_class_names
     if ds == "OfficeHomeDataset":
         return load_class_names("dataset/OfficeHomeDataset/classname.txt", 65)
+    if ds == "VisDA":       # 同 main.py
+        return ['aeroplane', 'bicycle', 'bus', 'car', 'horse', 'knife', 'motorcycle', 'person', 'plant', 'skateboard', 'train', 'truck']
     for p in glob.glob("runs/PaperDyn/*/*/final.pt") + glob.glob("runs/DomainNet/cap02_tstrong_self_ct_sema_e10/*_s42/final.pt"):
         a = torch.load(p, map_location="cpu", weights_only=False)["args"]
         if a["dataset"] == ds:
