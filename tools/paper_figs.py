@@ -200,7 +200,7 @@ def tsne(plt, prefix, rows, names, title, n_per_class, highlight, lines):
 
 def read_dyn(d):
     p = os.path.join(d, "dynamics.csv")
-    if not os.path.exists(p):
+    if not os.path.exists(p) or not os.path.exists(os.path.join(d, ".done")):    # 还在训练的不画
         return None
     rows = list(csv.DictReader(open(p)))
     out = {k: np.array([float(r[k]) for r in rows]) for k in rows[0]}
