@@ -41,7 +41,7 @@ RUNS = {
     "dn_full":   ("runs/DomainNet/cap02_tstrong_self_ct_sema_e10/S2P_s42/final.pt", "final", "DomainNet", "painting"),
 }
 ARCH = {"OfficeHomeDataset": "resnet50", "VisDA": "resnet101", "DomainNet": "resnet50"}
-LABEL = {"source": "Source only", "vsfot": "VSFOT", "minusA": "w/o A", "minusB": "w/o B", "minusC": "w/o C", "full": "Ours"}
+LABEL = {"source": "Source only", "vsfot": "VSFOT", "minusA": "w/o NCT", "minusB": "w/o RTL", "minusC": "w/o SPR", "full": "ESCORT"}  # 论文模块名：A=NCT, B=RTL, C=SPR
 
 # 参考调色板（dataviz palette.md，亮色），按固定顺序分配：本文永远是 1 号色
 SERIES = {"full": "#2a78d6", "minusA": "#eb6834", "minusB": "#1baf7a", "minusC": "#eda100", "vsfot": "#6250d6"}
